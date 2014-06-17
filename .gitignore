@@ -1,0 +1,28 @@
+*.class
+*.log
+*.swp
+*.swo
+
+# sbt specific
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Scala-IDE specific
+.scala_dependencies
+
+#java
+
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+*~
+*\#
+.history
