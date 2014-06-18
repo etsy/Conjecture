@@ -71,6 +71,7 @@ parallelExecution in Test := false
 
 seq(assemblySettings: _*)
 
+// replace with your publish settings
 publishTo <<= version { (v: String) =>
   val archivaURL = "http://ivy.etsycorp.com/repository"
   if (v.trim.endsWith("SNAPSHOT")) {
