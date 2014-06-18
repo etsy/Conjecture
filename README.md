@@ -23,7 +23,7 @@ We also need the true label of each instance, which we represent as 0 and 1
 We construct BinaryLabeledInstances, which are just wrappers for a feature vector and a label.
 
     val bl = new BinaryLabeledInstance(0.0)
-    bl.addTerm("bias", 1,0")
+    bl.addTerm("bias", 1,0)
     bl.addTerm("some_feature", 0.5)
 
 ## Training a Classifier
