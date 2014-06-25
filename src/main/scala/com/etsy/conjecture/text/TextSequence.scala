@@ -1,6 +1,6 @@
 package com.etsy.conjecture.text
 
-import com.etsy.conjecture.data.BinaryLabeledInstance
+import com.etsy.conjecture.data._
 
 case class TextSequence(tokens: Seq[String]) {
 
@@ -126,6 +126,10 @@ case class TextSequence(tokens: Seq[String]) {
     def toList = tokens.toList
 
     def toBinaryLabeledInstance(label: Double): BinaryLabeledInstance = {
+      toBinaryLabeledInstance(new BinaryLabel(label))
+    }
+
+    def toBinaryLabeledInstance(label: BinaryLabel): BinaryLabeledInstance = {
         val instance = new BinaryLabeledInstance(label)
 
         tokens.foreach {
@@ -134,6 +138,19 @@ case class TextSequence(tokens: Seq[String]) {
 
         instance
     }
+
+
+    def toMulticlassLabeledInstance(label: MulticlassLabel): MulticlassLabeledInstance = {
+        val instance = new MulticlassLabeledInstance(label)
+
+        tokens.foreach {
+            x => instance.addTerm(x)
+        }
+
+        instance
+    }
+
+
 }
 
 object Stopwords {
