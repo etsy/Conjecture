@@ -1,7 +1,5 @@
 package com.etsy.scalding.jobs.conjecture
 
-import scala.sys.process._
-
 import com.twitter.scalding.{Args, Job, Mode, SequenceFile, Tsv}
 import com.etsy.conjecture.scalding.evaluate.BinaryEvaluator
 import com.etsy.conjecture.data.{BinaryLabeledInstance, BinaryLabel}

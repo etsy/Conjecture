@@ -1,24 +1,22 @@
 package com.etsy.scalding.jobs.conjecture
 
-import scala.sys.process._
-
 import com.twitter.scalding.{Args, Job, Mode, SequenceFile, Tsv}
-import com.etsy.conjecture.scalding.evaluate.BinaryCrossValidator
-import com.etsy.conjecture.scalding.train.BinaryModelTrainer
-import com.etsy.conjecture.data.{BinaryLabel, BinaryLabeledInstance, StringKeyedVector}
-import com.etsy.conjecture.model.UpdateableLinearModel
-import com.etsy.conjecture.model.AdaGradLogistic
+import com.etsy.conjecture.scalding.evaluate.MulticlassCrossValidator
+import com.etsy.conjecture.scalding.train.MulticlassModelTrainer
+import com.etsy.conjecture.data.{MulticlassLabeledInstance, StringKeyedVector}
+import com.etsy.conjecture.model.MulticlassLogisticRegression
 
 import com.google.gson.Gson
 
 import cascading.tuple.Fields
 
-class AdHocClassifier(args : Args) extends Job(args) {
+class AdHocMulticlassClassifier(args : Args) extends Job(args) {
 
-  val input = args.getOrElse("input", "specify_an_input_dir")
-  val out_dir = args.getOrElse("out_dir", "adhoc_classifier")
+  val input = args("input")
+  val out_dir = args("out_dir")
   val folds = args.getOrElse("folds", "0").toInt
-  val problemName = args.getOrElse("name", "demo_problem")
+  val categories = args("categories").split(",").toArray
+
   val xmx = args.getOrElse("xmx", "3").toInt
 
   // Let the user configure the field names on the command line.
@@ -29,23 +27,16 @@ class AdHocClassifier(args : Args) extends Job(args) {
   // assumes input instances are a sequence file
   val instances = SequenceFile(input, data_fields).project(instance_field)
 
-  val model_pipe = new BinaryModelTrainer(args)
+  val model_pipe = new MulticlassModelTrainer(args, categories)
     .train(instances, instance_field, 'model)
 
-  val finish_model = if (args.getOrElse("model","passive_aggressive") == "adagrad_logistic") {
-    model_pipe
-    .map('model -> 'model) { m : AdaGradLogistic => m.setGradients(new StringKeyedVector()) }
-  } else {
-    model_pipe
-  }
-
-  finish_model
+  model_pipe
     .write(SequenceFile(out_dir + "/model"))
-    .mapTo('model -> 'json) { x : UpdateableLinearModel[BinaryLabel] => x.setArgString(args.toString); new Gson().toJson(x) }
+    .mapTo('model -> 'json) { x : MulticlassLogisticRegression => new Gson().toJson(x) }
     .write(Tsv(out_dir + "/model_json"))
 
   if(folds > 0) {
-    val eval_pred = new BinaryCrossValidator(args, folds)
+    val eval_pred = new MulticlassCrossValidator(args, folds, categories)
       .crossValidateWithPredictions(instances, instance_field, 'pred)
     eval_pred._1
       .write(Tsv(out_dir + "/xval"))

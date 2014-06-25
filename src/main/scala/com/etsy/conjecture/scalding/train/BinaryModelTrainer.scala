@@ -79,7 +79,13 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
 
     override def modelPostProcess(m: UpdateableLinearModel[BinaryLabel]): UpdateableLinearModel[BinaryLabel] = {
         m.thresholdParameters(finalThresholding)
-        m
+        m.setArgString(args.toString)
+
+        m match {
+          case ada : AdaGradLogistic => ada.setGradients(new StringKeyedVector())
+          case _  => m
+        }
+
     }
 
     def getModel: UpdateableLinearModel[BinaryLabel] = {
