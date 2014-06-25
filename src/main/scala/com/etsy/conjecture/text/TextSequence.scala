@@ -1,6 +1,6 @@
 package com.etsy.conjecture.text
 
-import com.etsy.conjecture.data._
+import com.etsy.conjecture.data.{BinaryLabeledInstance,BinaryLabel,MulticlassLabel,MulticlassLabeledInstance}
 
 case class TextSequence(tokens: Seq[String]) {
 

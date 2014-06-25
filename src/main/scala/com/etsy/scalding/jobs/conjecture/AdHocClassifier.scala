@@ -5,9 +5,8 @@ import scala.sys.process._
 import com.twitter.scalding.{Args, Job, Mode, SequenceFile, Tsv}
 import com.etsy.conjecture.scalding.evaluate.BinaryCrossValidator
 import com.etsy.conjecture.scalding.train.BinaryModelTrainer
-import com.etsy.conjecture.data.{BinaryLabel, BinaryLabeledInstance, StringKeyedVector}
+import com.etsy.conjecture.data.{BinaryLabel,BinaryLabeledInstance,StringKeyedVector}
 import com.etsy.conjecture.model.UpdateableLinearModel
-import com.etsy.conjecture.model.AdaGradLogistic
 
 import com.google.gson.Gson
 
@@ -32,14 +31,7 @@ class AdHocClassifier(args : Args) extends Job(args) {
   val model_pipe = new BinaryModelTrainer(args)
     .train(instances, instance_field, 'model)
 
-  val finish_model = if (args.getOrElse("model","passive_aggressive") == "adagrad_logistic") {
-    model_pipe
-    .map('model -> 'model) { m : AdaGradLogistic => m.setGradients(new StringKeyedVector()) }
-  } else {
-    model_pipe
-  }
-
-  finish_model
+  model_pipe
     .write(SequenceFile(out_dir + "/model"))
     .mapTo('model -> 'json) { x : UpdateableLinearModel[BinaryLabel] => x.setArgString(args.toString); new Gson().toJson(x) }
     .write(Tsv(out_dir + "/model_json"))
