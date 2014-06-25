@@ -1,7 +1,5 @@
 package com.etsy.scalding.jobs.conjecture
 
-import scala.sys.process._
-
 import com.twitter.scalding.{Args, Job, Mode, SequenceFile, Tsv}
 import com.etsy.conjecture.scalding.evaluate.BinaryCrossValidator
 import com.etsy.conjecture.scalding.train.BinaryModelTrainer
@@ -33,7 +31,7 @@ class AdHocClassifier(args : Args) extends Job(args) {
 
   model_pipe
     .write(SequenceFile(out_dir + "/model"))
-    .mapTo('model -> 'json) { x : UpdateableLinearModel[BinaryLabel] => x.setArgString(args.toString); new Gson().toJson(x) }
+    .mapTo('model -> 'json) { x : UpdateableLinearModel[BinaryLabel] => new Gson().toJson(x) }
     .write(Tsv(out_dir + "/model_json"))
 
   if(folds > 0) {
