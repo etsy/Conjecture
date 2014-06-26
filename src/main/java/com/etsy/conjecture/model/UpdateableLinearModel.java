@@ -38,63 +38,6 @@ public abstract class UpdateableLinearModel<L extends Label> implements
 
     private String argString = "NOT SET";
 
-    static class LearningRateComputation implements Serializable {
-
-        private static final long serialVersionUID = 6542742510494701712L;
-        double examplesPerEpoch = 10000;
-        boolean useExponentialLearningRate = false;
-        double exponentialLearningRateBase = 0.99;
-        double initialLearningRate = 0.1;
-
-        public double computeLearningRate(long t) {
-            double epoch_fudged = Math.max(1.0, (t + 1) / examplesPerEpoch);
-            if (useExponentialLearningRate) {
-                return Math.max(
-                        0d,
-                        initialLearningRate
-                                * Math.pow(exponentialLearningRateBase,
-                                        epoch_fudged));
-            } else {
-                return Math.max(0d, initialLearningRate / epoch_fudged);
-            }
-        }
-    }
-
-    static class RegularizationUpdater implements LazyVector.UpdateFunction {
-
-        private static final long serialVersionUID = 9153480933266800474L;
-        double laplace = 0.0;
-        double gaussian = 0.0;
-        LearningRateComputation computer = null;
-
-        public RegularizationUpdater() {
-        }
-
-        public RegularizationUpdater(LearningRateComputation c) {
-            computer = c;
-        }
-
-        public double update(double param, long start, long end) {
-            if (Utilities.floatingPointEquals(laplace, 0.0d)
-                    && Utilities.floatingPointEquals(gaussian, 0.0d)) {
-                return param;
-            }
-            for (long iter = start + 1; iter <= end; iter++) {
-                if (Utilities.floatingPointEquals(param, 0.0d)) {
-                    return 0.0d;
-                }
-                double eta = computer.computeLearningRate(iter);
-                param -= eta * gaussian * param;
-                if (param > 0.0) {
-                    param = Math.max(0.0, param - eta * laplace);
-                } else {
-                    param = Math.min(0.0, param + eta * laplace);
-                }
-            }
-            return param;
-        }
-    }
-
     protected LearningRateComputation rateComputer = new LearningRateComputation();
     protected RegularizationUpdater regularizer = new RegularizationUpdater(
             rateComputer);
