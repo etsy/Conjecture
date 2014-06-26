@@ -30,6 +30,18 @@ public class MulticlassPrediction extends MulticlassLabel {
         setLabel(maxCategory);
     }
 
+    public Double getProb(String category) {
+        return classProbs.get(category);
+    }
+
+    public Double getProbOrElse(String category, Double def) {
+        if (classProbs.containsKey(category)) {
+            return classProbs.get(category);
+        } else {
+            return def;
+        }
+    }
+
     public Map<String, Double> getMap() {
         return classProbs;
     }

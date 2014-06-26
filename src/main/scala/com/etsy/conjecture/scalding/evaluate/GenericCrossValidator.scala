@@ -61,5 +61,5 @@ class BinaryCrossValidator(args: Args, folds: Int) extends GenericCrossValidator
 class RegressionCrossValidator(args: Args, folds: Int) extends GenericCrossValidator[RealValuedLabel, UpdateableLinearModel[RealValuedLabel], RegressionModelEvaluation](
     new RegressionEvaluator(), new RegressionModelTrainer(args), folds, args.getOrElse("salt", ""))
 
-class MulticlassCrossValidator(args: Args, folds: Int, categories: Array[String]) extends GenericCrossValidator[MulticlassLabel, MulticlassLogisticRegression, MulticlassModelEvaluation](
+class MulticlassCrossValidator(args: Args, folds: Int, categories: Array[String]) extends GenericCrossValidator[MulticlassLabel, UpdateableMulticlassLinearModel, MulticlassModelEvaluation](
     new MulticlassEvaluator(categories), new MulticlassModelTrainer(args, categories), folds, args.getOrElse("salt", ""))

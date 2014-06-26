@@ -11,23 +11,17 @@ import java.util.Iterator;
 import java.util.Map;
 
 import com.etsy.conjecture.Utilities;
-import com.etsy.conjecture.data.Label;
+import com.etsy.conjecture.data.MulticlassLabel;
 import com.etsy.conjecture.data.LabeledInstance;
 import com.etsy.conjecture.data.LazyVector;
 import com.etsy.conjecture.data.StringKeyedVector;
 
-public abstract class UpdateableLinearModel<L extends Label> implements
-        UpdateableModel<L, UpdateableLinearModel<L>>,
-        Comparable<UpdateableLinearModel<L>>, Serializable {
+public abstract class UpdateableMulticlassLinearModel implements
+    UpdateableModel<MulticlassLabel, UpdateableMulticlassLinearModel>,
+    Comparable<UpdateableMulticlassLinearModel>, Serializable {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 8549108867384062857L;
-    protected LazyVector param;
     protected final String modelType;
-
-    protected long epoch;
 
     // parameters for gradient truncation
     // for more info, see:
@@ -38,9 +32,22 @@ public abstract class UpdateableLinearModel<L extends Label> implements
 
     private String argString = "NOT SET";
 
+    protected long epoch;
+
+    protected Map<String, LazyVector> param = new HashMap<String, LazyVector>();
+
     protected LearningRateComputation rateComputer = new LearningRateComputation();
     protected RegularizationUpdater regularizer = new RegularizationUpdater(
             rateComputer);
+
+    protected UpdateableMulticlassLinearModel(String[] categories) {
+        for (String category : categories) {
+            this.param.put(category, new LazyVector(100, regularizer));
+        }
+
+        this.epoch = 0;
+        this.modelType = this.getModelType();
+    }
 
     public void setArgString(String s) {
         argString = s;
@@ -50,88 +57,55 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         return argString;
     }
 
-    public double dotWithParam(StringKeyedVector x) {
-        return param.dot(x);
-    }
-
-    protected UpdateableLinearModel() {
-        this.param = new LazyVector(100, regularizer);
-        epoch = 0;
-        modelType = getModelType();
-    }
-
-    protected UpdateableLinearModel(StringKeyedVector param) {
-        this.param = new LazyVector(param, regularizer);
-        epoch = 0;
-        modelType = getModelType();
-    }
-
-    public abstract void updateRule(LabeledInstance<L> instance, double bias);
-
-    public void updateRule(LabeledInstance<L> instance) {
-        updateRule(instance, 0.0);
-    }
-
-    public abstract L predict(StringKeyedVector instance, double bias);
-
-    public L predict(StringKeyedVector instance) {
-        return predict(instance, 0.0);
-    }
+    public abstract void updateRule(LabeledInstance<MulticlassLabel> instance);
 
     protected abstract String getModelType();
 
     public Iterator<Map.Entry<String, Double>> decompose() {
-        return param.iterator();
+        throw new UnsupportedOperationException("not done yet");
     }
 
     public void setParameter(String name, double value) {
-        param.setCoordinate(name, value);
-    }
-
-    public StringKeyedVector getParam() {
-        return param;
+        throw new UnsupportedOperationException("not done yet");
     }
 
     public void reScale(double scale) {
-        param.mul(scale);
+        for (String cat : param.keySet()) {
+            param.get(cat).mul(scale);
+        }
     }
 
     public void setFreezeFeatureSet(boolean freeze) {
-        param.setFreezeKeySet(freeze);
+        for (Map.Entry<String, LazyVector> e : param.entrySet()) {
+            e.getValue().setFreezeKeySet(freeze);
+        }
     }
 
-    public void update(Collection<LabeledInstance<L>> instances) {
-        for (LabeledInstance<L> instance : instances) {
+    public void update(Collection<LabeledInstance<MulticlassLabel>> instances) {
+        for (LabeledInstance<MulticlassLabel> instance : instances) {
             update(instance);
         }
     }
 
-    public void update(LabeledInstance<L> instance) {
+    public void update(LabeledInstance<MulticlassLabel> instance) {
         if (epoch > 0) {
-            param.incrementIteration();
+            for (LazyVector vec : param.values()) {
+                vec.incrementIteration();
+            }
         }
+
         updateRule(instance);
+
         if (period > 0 && epoch > 0 && epoch % period == 0) {
             applyTruncation(instance.getVector());
         }
         epoch++;
     }
 
-    public void update(LabeledInstance<L> instance,
-            StringKeyedVector global_model) {
-        if (epoch > 0) {
-            param.incrementIteration();
+    public void merge(UpdateableMulticlassLinearModel model, double scale) {
+        for (String cat : param.keySet()) {
+            param.get(cat).addScaled(model.param.get(cat), scale);
         }
-        double bias = instance.getVector().dot(global_model);
-        updateRule(instance, bias);
-        if (period > 0 && epoch > 0 && epoch % period == 0) {
-            applyTruncation(instance.getVector());
-        }
-        epoch++;
-    }
-
-    public void merge(UpdateableLinearModel<L> model, double scaling) {
-        param.addScaled(model.param, scaling);
         epoch += model.epoch;
     }
 
@@ -155,8 +129,10 @@ public abstract class UpdateableLinearModel<L extends Label> implements
             }
         };
 
-        param.transformValues(truncFn);
-        param.removeZeroCoordinates();
+        for(LazyVector vec : param.values()) {
+            vec.transformValues(truncFn);
+            vec.removeZeroCoordinates();
+        }
     }
 
     public long getEpoch() {
@@ -167,18 +143,18 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         epoch = e;
     }
 
-    public UpdateableLinearModel<L> setInitialLearningRate(double rate) {
+    public UpdateableMulticlassLinearModel setInitialLearningRate(double rate) {
         checkArgument(rate > 0, "period must be positive, given: %s", rate);
         rateComputer.initialLearningRate = rate;
         return this;
     }
 
-    public UpdateableLinearModel<L> setUseExponentialLearningRate(boolean b) {
+    public UpdateableMulticlassLinearModel setUseExponentialLearningRate(boolean b) {
         rateComputer.useExponentialLearningRate = b;
         return this;
     }
 
-    public UpdateableLinearModel<L> setExponentialLearningRateBase(double base) {
+    public UpdateableMulticlassLinearModel setExponentialLearningRateBase(double base) {
         checkArgument(base > 0,
                 "exponential learning rate base must be positive, given: %f",
                 base);
@@ -190,55 +166,58 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         return this;
     }
 
-    public UpdateableLinearModel<L> setExamplesPerEpoch(double examples) {
+    public UpdateableMulticlassLinearModel setExamplesPerEpoch(double examples) {
         checkArgument(examples > 0,
                 "examples per epoch musht be positive, given %f", examples);
         rateComputer.examplesPerEpoch = examples;
         return this;
     }
 
-    public UpdateableLinearModel<L> setTruncationPeriod(int period) {
+    public UpdateableMulticlassLinearModel setTruncationPeriod(int period) {
         checkArgument(period >= 0, "period must be non-negative, given: %s",
                 period);
         this.period = period;
         return this;
     }
 
-    public UpdateableLinearModel<L> setTruncationThreshold(double threshold) {
+    public UpdateableMulticlassLinearModel setTruncationThreshold(double threshold) {
         checkArgument(threshold >= 0, "update must be non-negative, given: %s",
                 threshold);
         this.truncationThreshold = threshold;
         return this;
     }
 
-    public UpdateableLinearModel<L> setTruncationUpdate(double update) {
+    public UpdateableMulticlassLinearModel setTruncationUpdate(double update) {
         checkArgument(update >= 0, "update must be non-negative, given: %s",
                 update);
         this.truncationUpdate = update;
         return this;
     }
 
-    public UpdateableLinearModel<L> setLaplaceRegularizationWeight(double weight) {
+    public UpdateableMulticlassLinearModel setLaplaceRegularizationWeight(double weight) {
         regularizer.laplace = weight;
         return this;
     }
 
-    public UpdateableLinearModel<L> setGaussianRegularizationWeight(
+    public UpdateableMulticlassLinearModel setGaussianRegularizationWeight(
             double weight) {
         regularizer.gaussian = weight;
         return this;
     }
 
+    // what to do here?
     @Override
-    public int compareTo(UpdateableLinearModel<L> inputModel) {
-        return (int)Math.signum(inputModel.param.LPNorm(2d) - param.LPNorm(2d));
+    public int compareTo(UpdateableMulticlassLinearModel inputModel) {
+        return (int)Math.signum(inputModel.getEpoch() - getEpoch());
     }
 
     public void thresholdParameters(double t) {
-        for (Iterator<Map.Entry<String, Double>> it = param.iterator(); it
-                .hasNext();) {
-            if (Math.abs(it.next().getValue()) < t) {
-                it.remove();
+        for (LazyVector vec : param.values()) {
+            for (Iterator<Map.Entry<String, Double>> it = vec.iterator(); it
+                     .hasNext();) {
+                if (Math.abs(it.next().getValue()) < t) {
+                    it.remove();
+                }
             }
         }
     }
@@ -248,24 +227,6 @@ public abstract class UpdateableLinearModel<L extends Label> implements
     }
 
     public String explainPrediction(StringKeyedVector x, int n) {
-        StringBuilder out = new StringBuilder();
-        Map<String, Double> weights = new HashMap<String, Double>();
-        for (String dim : x.keySet()) {
-            if (param.getCoordinate(dim) != 0.0) {
-                weights.put(
-                        dim,
-                        Math.abs(x.getCoordinate(dim)
-                                * param.getCoordinate(dim)));
-            }
-        }
-        ArrayList<String> keys = com.etsy.conjecture.Utilities
-                .orderKeysByValue(weights, true);
-        for (int i = 0; (n == -1 || i < n) && i < keys.size(); i++) {
-            String k = keys.get(i);
-            out.append(k + ":" + String.format("%.2f", x.getCoordinate(k))
-                    + "->" + String.format("%.2f", param.getCoordinate(k))
-                    + " ");
-        }
-        return out.toString();
+        throw new UnsupportedOperationException("not done yet");
     }
 }
