@@ -9,23 +9,20 @@ import com.etsy.conjecture.data.LabeledInstance;
 import com.etsy.conjecture.data.MulticlassLabel;
 import com.etsy.conjecture.data.MulticlassPrediction;
 import com.etsy.conjecture.data.StringKeyedVector;
+import com.etsy.conjecture.data.LazyVector;
 
-public class MulticlassMIRA implements
-        UpdateableModel<MulticlassLabel, MulticlassMIRA> {
+public class MulticlassMIRA extends UpdateableMulticlassLinearModel {
 
     static final long serialVersionUID = 666L;
 
-    protected Map<String, StringKeyedVector> param = new HashMap<String, StringKeyedVector>();
-
     public MulticlassMIRA(String[] categories) {
-        for (String s : categories) {
-            param.put(s, new StringKeyedVector());
-        }
+        super(categories);
     }
 
+    @Override
     public MulticlassPrediction predict(StringKeyedVector instance) {
         Map<String, Double> scores = new HashMap<String, Double>();
-        for (Map.Entry<String, StringKeyedVector> e : param.entrySet()) {
+        for (Map.Entry<String, LazyVector> e : param.entrySet()) {
             scores.put(e.getKey(), e.getValue().dot(instance));
         }
         // Give scores rather than class probabilities.
@@ -33,19 +30,8 @@ public class MulticlassMIRA implements
         return new MulticlassPrediction(scores);
     }
 
-    public void setFreezeFeatureSet(boolean freeze) {
-        for (Map.Entry<String, StringKeyedVector> e : param.entrySet()) {
-            e.getValue().setFreezeKeySet(freeze);
-        }
-    }
-
-    public void update(Collection<LabeledInstance<MulticlassLabel>> instances) {
-        for (LabeledInstance<MulticlassLabel> instance : instances) {
-            update(instance);
-        }
-    }
-
-    public void update(LabeledInstance<MulticlassLabel> li) {
+    @Override
+    public void updateRule(LabeledInstance<MulticlassLabel> li) {
         MulticlassPrediction pred = predict(li.getVector());
         String ltrue = li.getLabel().getLabel();
         String lpred = pred.getLabel();
@@ -62,31 +48,8 @@ public class MulticlassMIRA implements
         }
     }
 
-    public void reScale(double scale) {
-        for (String cat : param.keySet()) {
-            param.get(cat).mul(scale);
-        }
-    }
-
-    public void merge(MulticlassMIRA model, double scale) {
-        for (String cat : param.keySet()) {
-            param.get(cat).addScaled(model.param.get(cat), scale);
-        }
-    }
-
-    public Iterator<Map.Entry<String, Double>> decompose() {
-        throw new UnsupportedOperationException("not done yet");
-    }
-
-    public void setParameter(String name, double value) {
-        throw new UnsupportedOperationException("not done yet");
-    }
-
-    public long getEpoch() {
-        return 0;
-    }
-
-    public void setEpoch(long epoch) {
-        // this class doesnt care about epoch.
+    @Override
+    public String getModelType() {
+        return "multiclass_mira";
     }
 }

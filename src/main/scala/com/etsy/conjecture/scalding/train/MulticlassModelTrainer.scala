@@ -5,14 +5,18 @@ import com.twitter.scalding._
 import com.etsy.conjecture.data._
 import com.etsy.conjecture.model._
 
-class MulticlassModelTrainer(args: Args, categories: Array[String]) extends AbstractModelTrainer[MulticlassLabel, MulticlassLogisticRegression] with ModelTrainerStrategy[MulticlassLabel, MulticlassLogisticRegression] {
+class MulticlassModelTrainer(args: Args, categories: Array[String]) extends AbstractModelTrainer[MulticlassLabel, UpdateableMulticlassLinearModel] with ModelTrainerStrategy[MulticlassLabel, UpdateableMulticlassLinearModel] {
 
     val iters = args.getOrElse("iters", "1").toInt
 
+    val modelType = args.getOrElse("model", "logistic_regression").toString
+
     override def getIters: Int = iters
 
-    def getModel: MulticlassLogisticRegression = {
-        new MulticlassLogisticRegression(categories)
+    def getModel: UpdateableMulticlassLinearModel = {
+      modelType match {
+        case "logistic_regression" => new MulticlassLogisticRegression(categories)
+      }
     }
 
     val bins = args.getOrElse("bins", "100").toInt
