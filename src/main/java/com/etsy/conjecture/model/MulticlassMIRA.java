@@ -22,11 +22,18 @@ public class MulticlassMIRA extends UpdateableMulticlassLinearModel {
     @Override
     public MulticlassPrediction predict(StringKeyedVector instance) {
         Map<String, Double> scores = new HashMap<String, Double>();
+        double normalization = 0;
+
         for (Map.Entry<String, LazyVector> e : param.entrySet()) {
-            scores.put(e.getKey(), e.getValue().dot(instance));
+            double innerProduct = e.getValue().dot(instance);
+            scores.put(e.getKey(), innerProduct);
+            normalization += innerProduct;
         }
-        // Give scores rather than class probabilities.
-        // TODO: some kind of soft-max bs.
+
+        for (Map.Entry<String, Double> e : scores.entrySet()) {
+            scores.put(e.getKey(), e.getValue() / normalization);
+        }
+
         return new MulticlassPrediction(scores);
     }
 
