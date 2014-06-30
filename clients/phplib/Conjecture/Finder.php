@@ -69,13 +69,19 @@ class Conjecture_Finder {
 
     public function getMulticlassClassifier($file_name) {
         $model_array = $this->getLatestModelForProblem($file_name);
+        $model_type = $model_array["modelType"];
 
         foreach ($model_array["param"] as $cat => $category_model) {
             $categeory_params = $category_model["vector"];
-            $category_params[$cat] = new Conjecture_BinaryClassifier(new Conjecture_Vector($category_params));
+            $category_params[$cat] = new Conjecture_Vector($category_params);
         }
 
-        return new Conjecture_MulticlassOneVsAllClassifier($category_params);
+        switch ($model_type) {
+            case "multiclass_logistic_regression":
+                return new Conjecture_MulticlassLogisticRegressionClassifier($category_params);
+            default:
+                return new Conjecture_MulticlassClassifier($category_params);
+        }
     }
 
 
