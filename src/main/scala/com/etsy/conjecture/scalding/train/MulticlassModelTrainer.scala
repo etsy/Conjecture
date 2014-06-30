@@ -55,6 +55,13 @@ class MulticlassModelTrainer(args: Args, categories: Array[String]) extends Abst
 
     override def getIters: Int = iters
 
+    override def modelPostProcess(m: UpdateableMulticlassLinearModel) : UpdateableMulticlassLinearModel = {
+        m.thresholdParameters(finalThresholding)
+        m.setArgString(args.toString)
+        m
+    }
+
+
     def getModel: UpdateableMulticlassLinearModel = {
       val model = modelType match {
         case "logistic_regression" => new MulticlassLogisticRegression(categories)
