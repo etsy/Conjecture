@@ -67,6 +67,18 @@ class Conjecture_Finder {
     }
 
 
+    public function getMulticlassClassifier($file_name) {
+        $model_array = $this->getLatestModelForProblem($file_name);
+
+        foreach ($model_array["param"] as $cat => $category_model) {
+            $categeory_params = $category_model["vector"];
+            $category_params[$cat] = new Conjecture_BinaryClassifier(new Conjecture_Vector($category_params));
+        }
+
+        return new Conjecture_MulticlassOneVsAllClassifier($category_params);
+    }
+
+
     static function build(Conjecture_Config $config) {
         return new Conjecture_Finder($config);
     }
