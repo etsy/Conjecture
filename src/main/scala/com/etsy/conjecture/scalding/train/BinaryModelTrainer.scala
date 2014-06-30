@@ -16,12 +16,13 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
 
     override def getIters: Int = iters
 
-    // What type of linear model should be used?
-    // options are:
-    // 1. perceptron
-    // 2. passive_aggressive
-    // 3. logistic_regression
-    // 4. mira
+    /** What type of linear model should be used?
+     *  options are:
+     *  1. perceptron
+     *  2. linear_svm
+     *  3. logistic_regression
+     *  4. MIRA
+     */
     val modelType = args.getOrElse("model", "logistic_regression")
 
     /**
@@ -29,21 +30,15 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
      *  should we use?
      *
      *  Options:
-     *    - Elastic net
-     *    - AdaGrad
+     *  1. elastic_net
+     *  2. adagrad
+     *  3. passive_aggressive
+     *  4. ftrl
      */
     val optimizerType = args.getOrElse("optimizer", "elastic_net")
 
-    val learningRate = args.getOrElse("learning_rate", "exponential")
-
     // aggressiveness parameter for passive aggressive classifier
-    val aggressiveness = args.getOrElse("aggressiveness", "2.").toDouble
-
-    // What type of learning rate schedule?
-    // options are:
-    // 1. exponential
-    // 2. adagrad
-    val learningRateSchedule = args.getOrElse("learning_rate_schedule", "exponential").toString
+    val aggressiveness = args.getOrElse("aggressiveness", "2.0").toDouble
 
     val finalThresholding = args.getOrElse("final_thresholding", "0.0").toDouble
 
@@ -73,12 +68,19 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     // similar to ridge 
     val gauss = args.getOrElse("gauss", "0.0").toDouble
 
+    val ftrlAlpha = args.getOrElse("ftrlAlpha", "1.0").toDouble
+
+    val ftrlBeta = args.getOrElse("ftrlBeta", "1.0").toDouble
+
+
     /**
      *  Choose an optimizer to use
      */
     val o = optimizerType match {
         case "elastic_net" => new ElasticNetOptimizer()
         case "adagrad" => new AdagradOptimizer()
+        case "passive_aggressive" => new PassiveAggressiveOptimizer().setC(aggressiveness).isHinge(true)
+        case "ftrl" => new FTRLOptimizer().setAlpha(ftrlAlpha).setBeta(ftrlBeta)
     }
     val optimizer = o.setExamplesPerEpoch(examplesPerEpoch)
                      .setUseExponentialLearningRate(useExponentialLearningRate)
@@ -115,10 +117,10 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
 
     def getModel: UpdateableLinearModel[BinaryLabel] = {
         val model = modelType match {
-            case "perceptron" => new Perceptron(optimizer)
-            case "passive_aggressive" => new PassiveAggressive(optimizer).setC(aggressiveness)
+            case "perceptron" => new Hinge(optimizer).setThreshold(0.0)
+            case "linear_svm" => new Hinge(optimizer).setThreshold(1.0)
             case "logistic_regression" => new LogisticRegression(optimizer)
-            case "mira" => new MIRA(optimizer)
+            case "mira" => new MIRA(new MIRAOptimizer())
         }
         model.setTruncationPeriod(truncationPeriod)
              .setTruncationThreshold(truncationThresh)

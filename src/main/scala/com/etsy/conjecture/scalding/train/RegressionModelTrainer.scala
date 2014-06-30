@@ -29,10 +29,19 @@ class RegressionModelTrainer(args: Args) extends AbstractModelTrainer[RealValued
      *  should we use?
      *
      *  Options:
-     *    - Elastic net
-     *    - AdaGrad
+     *  1. elastic_net
+     *  2. adagrad
+     *  3. passive_aggressive
+     *  4. ftrl
      */
     val optimizerType = args.getOrElse("optimizer", "elastic_net")
+
+    // aggressiveness parameter for passive aggressive classifier
+    val aggressiveness = args.getOrElse("aggressiveness", "2.0").toDouble
+
+    val ftrlAlpha = args.getOrElse("ftrlAlpha", "1.0").toDouble
+
+    val ftrlBeta = args.getOrElse("ftrlBeta", "1.0").toDouble
 
     // initial learning rate used for SGD learning. this decays according to the
     // inverse of the epoch
@@ -54,8 +63,9 @@ class RegressionModelTrainer(args: Args) extends AbstractModelTrainer[RealValued
     val o = optimizerType match {
         case "elastic_net" => new ElasticNetOptimizer()
         case "adagrad" => new AdagradOptimizer()
+        case "passive_aggressive" => new PassiveAggressiveOptimizer().setC(aggressiveness).isHinge(false)
+        case "ftrl" => new FTRLOptimizer().setAlpha(ftrlAlpha).setBeta(ftrlBeta)
     }
-
     val optimizer = o.setExamplesPerEpoch(examplesPerEpoch)
                      .setUseExponentialLearningRate(useExponentialLearningRate)
                      .setExponentialLearningRateBase(exponentialLearningRateBase)

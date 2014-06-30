@@ -18,15 +18,21 @@ public class LeastSquaresRegressionModel extends
     }
 
     @Override
-    public RealValuedLabel predict(StringKeyedVector instance, double bias) {
-        return new RealValuedLabel(param.dot(instance) + bias);
+    public RealValuedLabel predict(StringKeyedVector instance) {
+        return new RealValuedLabel(param.dot(instance));
     }
 
     @Override
-    public StringKeyedVector getGradients(LabeledInstance<RealValuedLabel> instance,
-                                          double bias) {
+    public double loss (LabeledInstance<RealValuedLabel> instance) {
+        double label = instance.getLabel().getValue();
+        double hypothesis = param.dot(instance.getVector());
+        return 0.5 * (hypothesis - label) * (hypothesis - label);
+    }
+
+    @Override
+    public StringKeyedVector getGradients(LabeledInstance<RealValuedLabel> instance) {
         StringKeyedVector gradients = instance.getVector();
-        double hypothesis = param.dot(instance.getVector()) + bias;
+        double hypothesis = param.dot(instance.getVector());
         double label = instance.getLabel().getValue();
         gradients.mul((2 * (hypothesis-label)));
         return gradients;

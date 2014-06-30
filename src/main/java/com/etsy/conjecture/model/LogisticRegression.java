@@ -5,6 +5,9 @@ import com.etsy.conjecture.data.BinaryLabel;
 import com.etsy.conjecture.data.LabeledInstance;
 import com.etsy.conjecture.data.StringKeyedVector;
 
+/**
+ *  Logistic regression loss for binary classification with y in {-1, 1}.
+ */
 public class LogisticRegression extends UpdateableLinearModel<BinaryLabel> {
 
     private static final long serialVersionUID = 1L;
@@ -17,17 +20,27 @@ public class LogisticRegression extends UpdateableLinearModel<BinaryLabel> {
         super(param, optimizer);
     }
 
-    public BinaryLabel predict(StringKeyedVector instance, double bias) {
-        return new BinaryLabel(Utilities.logistic(instance.dot(param) + bias));
+    @Override
+    public BinaryLabel predict(StringKeyedVector instance) {
+        return new BinaryLabel(Utilities.logistic(instance.dot(param)));
     }
 
     @Override
-    public StringKeyedVector getGradients(LabeledInstance<BinaryLabel> instance, double bias) {
+    public double loss(LabeledInstance<BinaryLabel> instance) {
+        double hypothesis = Utilities.logistic(instance.getVector().dot(param));
+        double label = instance.getLabel().getAsPlusMinus();
+        double z = label * hypothesis;
+        return Math.log(1.0 + Math.exp(-z));
+    }
+
+    @Override
+    public StringKeyedVector getGradients(LabeledInstance<BinaryLabel> instance) {
         StringKeyedVector gradients = instance.getVector();
-        double hypothesis = Utilities.logistic(instance.getVector().dot(param)
-                + bias);
-        double label = instance.getLabel().getValue();
-        gradients.mul((hypothesis-label));
+        double hypothesis = Utilities.logistic(instance.getVector().dot(param));
+        double label = instance.getLabel().getAsPlusMinus();
+        double z = label * hypothesis;
+        double gradient = -label / (Math.exp(z) + 1.0);
+        gradients.mul(gradient);
         return gradients;
     }
 

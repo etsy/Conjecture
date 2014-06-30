@@ -20,9 +20,6 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         UpdateableModel<L, UpdateableLinearModel<L>>,
         Comparable<UpdateableLinearModel<L>>, Serializable {
 
-    /**
-     * 
-     */
     private static final long serialVersionUID = 8549108867384062857L;
     protected LazyVector param;
     protected final String modelType;
@@ -34,9 +31,9 @@ public abstract class UpdateableLinearModel<L extends Label> implements
     // parameters for gradient truncation
     // for more info, see:
     // http://jmlr.csail.mit.edu/papers/volume10/langford09a/langford09a.pdf
-    private int period = 0;
-    private double truncationUpdate = 0.1;
-    private double truncationThreshold = 0.0;
+    protected int period = 0;
+    protected double truncationUpdate = 0.1;
+    protected double truncationThreshold = 0.0;
 
     private String argString = "NOT SET";
 
@@ -54,6 +51,7 @@ public abstract class UpdateableLinearModel<L extends Label> implements
 
     protected UpdateableLinearModel(SGDOptimizer optimizer) {
         this.optimizer = optimizer;
+        optimizer.model = this;
         this.param = new LazyVector(100, optimizer);
         epoch = 0;
         modelType = getModelType();
@@ -61,6 +59,7 @@ public abstract class UpdateableLinearModel<L extends Label> implements
 
     protected UpdateableLinearModel(StringKeyedVector param, SGDOptimizer optimizer) {
         this.optimizer = optimizer;
+        optimizer.model = this;
         this.param = new LazyVector(param, optimizer);
         epoch = 0;
         modelType = getModelType();
@@ -69,35 +68,30 @@ public abstract class UpdateableLinearModel<L extends Label> implements
     /**
      *  Get a StringKeyedVector holding the gradient of the loss w.r.t. every model parameter.
      */
-    public abstract StringKeyedVector getGradients(LabeledInstance<L> instance, double bias);
+    public abstract StringKeyedVector getGradients(LabeledInstance<L> instance);
 
-    public void updateRule(LabeledInstance<L> instance) {
-        updateRule(instance, 0.0);
+    /**
+     *  Minibatch gradient update
+     */
+    public void update(Collection<LabeledInstance<L>> instances) {
+        if (epoch > 0) {
+            param.incrementIteration();
+        }
+        StringKeyedVector updates = optimizer.getUpdates(instances);
+        param.add(updates);
     }
 
     /**
-     *  Take an SGD step and update model weights. This computes the
-     *  gradient of the loss then hands the feature, the current time
-     *  step, and the gradient to the selected optimizer to get the
-     *  weight update.
+     *  Single gradient update
      */
-    public void updateRule(LabeledInstance<L> instance, double bias) {
-        StringKeyedVector gradients = getGradients(instance, bias);
-        Iterator it = gradients.iterator();
-        while (it.hasNext()) {
-            Map.Entry<String,Double> pairs = (Map.Entry)it.next();
-            String feature = pairs.getKey();
-            double gradient = pairs.getValue();
-            double update = this.optimizer.getUpdate(feature, epoch, gradient);
-            param.addToCoordinate(feature, update);
-       }
+    public void update(LabeledInstance<L> instance) {
+        StringKeyedVector update = optimizer.getUpdate(instance);
+        param.add(update);
     }
-   
-    public abstract L predict(StringKeyedVector instance, double bias);
 
-    public L predict(StringKeyedVector instance) {
-        return predict(instance, 0.0);
-    }
+    public abstract L predict(StringKeyedVector instance);
+
+    public abstract double loss(LabeledInstance<L> instance);
 
     protected abstract String getModelType();
 
@@ -121,42 +115,21 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         param.setFreezeKeySet(freeze);
     }
 
-    public void update(Collection<LabeledInstance<L>> instances) {
-        for (LabeledInstance<L> instance : instances) {
-            update(instance);
-        }
-    }
-
-    public void update(LabeledInstance<L> instance) {
-        if (epoch > 0) {
-            param.incrementIteration();
-        }
-        updateRule(instance);
-        if (period > 0 && epoch > 0 && epoch % period == 0) {
-            applyTruncation(instance.getVector());
-        }
-        epoch++;
-    }
-
-    public void update(LabeledInstance<L> instance,
-            StringKeyedVector global_model) {
-        if (epoch > 0) {
-            param.incrementIteration();
-        }
-        double bias = instance.getVector().dot(global_model);
-        updateRule(instance, bias);
-        if (period > 0 && epoch > 0 && epoch % period == 0) {
-            applyTruncation(instance.getVector());
-        }
-        epoch++;
-    }
-
     public void merge(UpdateableLinearModel<L> model, double scaling) {
         param.addScaled(model.param, scaling);
         epoch += model.epoch;
     }
 
-    private void applyTruncation(StringKeyedVector instance) {
+    /**
+     *  Decide based on period and epoch whether to truncate
+     */
+    public void truncate(LabeledInstance<L> instance) {
+        if (period > 0 && epoch > 0 && epoch % period == 0) {
+                applyTruncation(instance.getVector());
+        }
+    }
+
+    public void applyTruncation(StringKeyedVector instance) {
         final double update = this.optimizer.getDecreasingLearningRate(epoch) * truncationUpdate;
         final double threshold = truncationThreshold;
 
