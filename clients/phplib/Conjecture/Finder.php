@@ -44,7 +44,7 @@ class Conjecture_Finder {
 
     public function getLatestModelForProblem($file_name) {
         $json = $this->getLatestModelJsonForProblem($file_name);
-        return json_decode($json);
+        return json_decode($json, true);
     }
 
     public function getLatestBinaryClassificationVectorForProblem($file_name) {
