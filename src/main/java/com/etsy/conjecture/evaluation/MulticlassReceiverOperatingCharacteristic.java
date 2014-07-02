@@ -88,6 +88,10 @@ public class MulticlassReceiverOperatingCharacteristic implements Serializable {
         return weightedAverageAUC;
     }
 
+    public double singleClassAUC(String category) {
+        return classROC.get(category).binaryAUC();
+    }
+
     public double multiclassBrierScore() {
         double brierScore = 0d;
         int numClasses = classCounts.keySet().size();

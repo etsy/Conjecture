@@ -59,6 +59,10 @@ public class MulticlassModelEvaluation implements Serializable,
         return ROC.multiclassAUC();
     }
 
+    public double computeAUC(String dim) {
+        return ROC.singleClassAUC(dim);
+    }
+
     public double computeBrier() {
         return ROC.multiclassBrierScore();
     }
@@ -109,6 +113,7 @@ public class MulticlassModelEvaluation implements Serializable,
         m.put("Rec (avg)", computeRecall());
 
         for (String category : categories) {
+            m.put(category + ": AUC", computeAUC(category));
             m.put(category + ": Acc", computeAccy(category));
             m.put(category + ": F1", computeFmeasure(category));
             m.put(category + ": Prc", computePrecision(category));
