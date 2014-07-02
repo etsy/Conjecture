@@ -26,7 +26,7 @@ public abstract class UpdateableLinearModel<L extends Label> implements
 
     protected long epoch;
 
-    private SGDOptimizer optimizer;
+    protected SGDOptimizer optimizer;
 
     // parameters for gradient truncation
     // for more info, see:
@@ -85,8 +85,13 @@ public abstract class UpdateableLinearModel<L extends Label> implements
      *  Single gradient update
      */
     public void update(LabeledInstance<L> instance) {
+        if (epoch > 0) {
+            param.incrementIteration();
+        }
         StringKeyedVector update = optimizer.getUpdate(instance);
-        param.add(update);
+        param.addScaled(update,-1.0);
+        truncate(instance);
+        epoch++;
     }
 
     public abstract L predict(StringKeyedVector instance);

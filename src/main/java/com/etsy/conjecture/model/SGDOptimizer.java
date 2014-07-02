@@ -10,7 +10,7 @@ import java.util.Collection;
 
 /**
  *  Builds the weight updates as a function
- *  of learning rate and regularization for SGD learning.
+ *  of learning rate and regularization schedule for SGD learning.
  *
  *  Default learning rate and regularization are:
  *  LR: Exponentially decreasing
@@ -37,17 +37,17 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
     }
 
     /**
-     *  This is common to every optimizer except HandsFree,
-     *  which needs to override it to do things like build
-     *  training/validation splits on the fly.
+     *  Do minibatch gradient descent
      */
-    public StringKeyedVector getUpdates(Collection<LabeledInstance<L>> instances) {
+    public StringKeyedVector getUpdates(Collection<LabeledInstance<L>> minibatch) {
         StringKeyedVector updateVec = new StringKeyedVector();
-        for (LabeledInstance instance : instances) {
-            updateVec.add(getUpdate(instance));
+        for (LabeledInstance instance : minibatch) {
+            updateVec.add(getUpdate(instance)); // accumulate gradient
             model.truncate(instance);
             model.epoch++;
         }
+        updateVec.mul(1/minibatch.size()); // do a single update, scaling weights by the
+                                           // average gradient over the minibatch
         return updateVec;
     }
 
@@ -137,6 +137,22 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
                 "exponential learning rate base must be at most 1.0, given: %f",
                 base);
         this.exponentialLearningRateBase = base;
+        return this;
+    }
+
+    public SGDOptimizer setGaussianRegularizationWeight(double gaussian) {
+        checkArgument(gaussian > 0,
+                "gaussian regularization weight must be positive, given: %f",
+                gaussian);
+        this.gaussian = gaussian;
+        return this;
+    }
+
+    public SGDOptimizer setLaplaceRegularizationWeight(double laplace) {
+        checkArgument(laplace > 0,
+                "laplace regularization weight must be positive, given: %f",
+                laplace);
+        this.laplace = laplace;
         return this;
     }
 }

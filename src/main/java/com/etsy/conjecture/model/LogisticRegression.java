@@ -27,19 +27,17 @@ public class LogisticRegression extends UpdateableLinearModel<BinaryLabel> {
 
     @Override
     public double loss(LabeledInstance<BinaryLabel> instance) {
-        double hypothesis = Utilities.logistic(instance.getVector().dot(param));
+        double inner = instance.getVector().dot(param);
         double label = instance.getLabel().getAsPlusMinus();
-        double z = label * hypothesis;
-        return Math.log(1.0 + Math.exp(-z));
+        return Math.log(1.0 + Math.exp(-label * inner));
     }
 
     @Override
     public StringKeyedVector getGradients(LabeledInstance<BinaryLabel> instance) {
         StringKeyedVector gradients = instance.getVector();
-        double hypothesis = Utilities.logistic(instance.getVector().dot(param));
         double label = instance.getLabel().getAsPlusMinus();
-        double z = label * hypothesis;
-        double gradient = -label / (Math.exp(z) + 1.0);
+        double inner = instance.getVector().dot(param);
+        double gradient = -label * Utilities.logistic(-label * inner);
         gradients.mul(gradient);
         return gradients;
     }

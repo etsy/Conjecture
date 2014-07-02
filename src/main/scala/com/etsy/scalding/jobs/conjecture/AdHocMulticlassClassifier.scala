@@ -4,7 +4,7 @@ import com.twitter.scalding.{Args, Job, Mode, SequenceFile, Tsv}
 import com.etsy.conjecture.scalding.evaluate.MulticlassCrossValidator
 import com.etsy.conjecture.scalding.train.MulticlassModelTrainer
 import com.etsy.conjecture.data.{MulticlassLabeledInstance, StringKeyedVector}
-import com.etsy.conjecture.model.MulticlassLogisticRegression
+import com.etsy.conjecture.model.UpdateableMulticlassLinearModel
 
 import com.google.gson.Gson
 
@@ -32,7 +32,7 @@ class AdHocMulticlassClassifier(args : Args) extends Job(args) {
 
   model_pipe
     .write(SequenceFile(out_dir + "/model"))
-    .mapTo('model -> 'json) { x : MulticlassLogisticRegression => new Gson().toJson(x) }
+    .mapTo('model -> 'json) { x : UpdateableMulticlassLinearModel => new Gson().toJson(x) }
     .write(Tsv(out_dir + "/model_json"))
 
   if(folds > 0) {

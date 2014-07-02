@@ -10,18 +10,20 @@ import scala.io.Source
 
 class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, UpdateableLinearModel[BinaryLabel]] with ModelTrainerStrategy[BinaryLabel, UpdateableLinearModel[BinaryLabel]] {
 
-    // Number of iterations for
-    // sequential gradient descent
+    /** 
+     * Number of iterations for sequential gradient descent
+     */
     var iters = args.getOrElse("iters", "1").toInt
 
     override def getIters: Int = iters
 
-    /** What type of linear model should be used?
-     *  options are:
+    /** 
+     *  What type of linear model should be used?
+     *  Options are:
      *  1. perceptron
      *  2. linear_svm
      *  3. logistic_regression
-     *  4. MIRA
+     *  4. mira
      */
     val modelType = args.getOrElse("model", "logistic_regression")
 
@@ -37,39 +39,48 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
      */
     val optimizerType = args.getOrElse("optimizer", "elastic_net")
 
-    // aggressiveness parameter for passive aggressive classifier
+    /** Aggressiveness parameter for passive aggressive classifier **/
     val aggressiveness = args.getOrElse("aggressiveness", "2.0").toDouble
 
     val finalThresholding = args.getOrElse("final_thresholding", "0.0").toDouble
 
-    // Initial learning rate used for SGD learning. this decays according to the
-    // inverse of the epoch
+    /**
+     * Initial learning rate used for SGD learning.
+     */
     val initialLearningRate = args.getOrElse("rate", "0.1").toDouble
 
-    // Base of the exponential learning rate (e.g., 0.99^{# examples seen}).
+    /** Base of the exponential learning rate (e.g., 0.99^{# examples seen}). **/
     val exponentialLearningRateBase = args.getOrElse("exponential_learning_rate_base", "1.0").toDouble
 
-    // Whether to use the exponential learning rate.  If not chosen then the learning rate is like 1.0 / epoch.
+    /** Whether to use the exponential learning rate.  If not chosen then the learning rate is like 1.0 / epoch. **/
     val useExponentialLearningRate = args.boolean("exponential_learning_rate_base")
 
-    // A fudge factor so that an "epoch" for the purpose of learning rate computation can be more than one example,
-    // in which case the "epoch" will take a fractional amount equal to {# examples seen} / examples_per_epoch.
+    /** 
+     * A fudge factor so that an "epoch" for the purpose of learning rate computation can be more than one example,
+     * in which case the "epoch" will take a fractional amount equal to {# examples seen} / examples_per_epoch.
+     */
     val examplesPerEpoch = args.getOrElse("examples_per_epoch", "10000").toDouble
 
-    // How to subsample each class, in the case of imbalanced data.
+    /** How to subsample each class, in the case of imbalanced data. **/
     val zeroClassProb = args.getOrElse("zero_class_prob", "1.0").toDouble
     val oneClassProb = args.getOrElse("one_class_prob", "1.0").toDouble
 
-    // Weight on laplace regularization- a laplace prior on the parameters
-    // sparsity inducing ala lasso
+    /**
+     * Weight on laplace regularization- a laplace prior on the parameters
+     * sparsity inducing ala lasso
+     */
     val laplace = args.getOrElse("laplace", "0.0").toDouble
 
-    // Weight on gaussian prior on the parameters
-    // similar to ridge 
+    /**
+     * Weight on gaussian prior on the parameters
+     * similar to ridge 
+     */
     val gauss = args.getOrElse("gauss", "0.0").toDouble
 
+    /**
+     *  Learning rate parameters for FTRL
+     */
     val ftrlAlpha = args.getOrElse("ftrlAlpha", "1.0").toDouble
-
     val ftrlBeta = args.getOrElse("ftrlBeta", "1.0").toDouble
 
 
@@ -77,28 +88,35 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
      *  Choose an optimizer to use
      */
     val o = optimizerType match {
-        case "elastic_net" => new ElasticNetOptimizer()
-        case "adagrad" => new AdagradOptimizer()
-        case "passive_aggressive" => new PassiveAggressiveOptimizer().setC(aggressiveness).isHinge(true)
-        case "ftrl" => new FTRLOptimizer().setAlpha(ftrlAlpha).setBeta(ftrlBeta)
-    }
-    val optimizer = o.setExamplesPerEpoch(examplesPerEpoch)
-                     .setUseExponentialLearningRate(useExponentialLearningRate)
-                     .setExponentialLearningRateBase(exponentialLearningRateBase)
-                     .setInitialLearningRate(initialLearningRate)
+            case "elastic_net" => new ElasticNetOptimizer()
+            case "adagrad" => new AdagradOptimizer()
+            case "passive_aggressive" => new PassiveAggressiveOptimizer().setC(aggressiveness).isHinge(true)
+            case "ftrl" => new FTRLOptimizer().setAlpha(ftrlAlpha).setBeta(ftrlBeta)
+        }
 
-    // period of gradient truncation updates
+    val optimizer = o.setGaussianRegularizationWeight(gauss)
+        .setLaplaceRegularizationWeight(laplace)
+        .setExamplesPerEpoch(examplesPerEpoch)
+        .setUseExponentialLearningRate(useExponentialLearningRate)
+        .setExponentialLearningRateBase(exponentialLearningRateBase)
+        .setInitialLearningRate(initialLearningRate)
+
+    /** Period of gradient truncation updates **/
     val truncationPeriod = args.getOrElse("period", Int.MaxValue.toString).toInt
 
-    // aggressiveness of gradient truncation updates, how much shrinkage
-    // is applied to the model's parameters
+    /** 
+     * Aggressiveness of gradient truncation updates, how much shrinkage
+     * is applied to the model's parameters
+     */
     val truncationAlpha = args.getOrElse("alpha", "0.0").toDouble
 
-    // threshold for applying gradient truncation updates
-    // parameter values smaller than this in magnitude are truncated
+    /**
+     * Threshold for applying gradient truncation updates
+     * parameter values smaller than this in magnitude are truncated
+     */
     val truncationThresh = args.getOrElse("thresh", "0.0").toDouble
 
-    // Size of minibatch for mini-batch training, defaults to 1 which is just SGD.
+    /** Size of minibatch for mini-batch training, defaults to 1 which is just SGD. **/
     val batchsz = args.getOrElse("mini_batch_size", "1").toInt
     override def miniBatchSize: Int = batchsz
 

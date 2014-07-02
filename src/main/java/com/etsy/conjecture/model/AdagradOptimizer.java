@@ -19,7 +19,7 @@ public class AdagradOptimizer extends SGDOptimizer {
 
     @Override
     public StringKeyedVector getUpdate(LabeledInstance instance) {
-        StringKeyedVector gradients = model.getGradients(instance, 0.0);
+        StringKeyedVector gradients = model.getGradients(instance);
         Iterator it = gradients.iterator();
         while (it.hasNext()) {
             Map.Entry<String,Double> pairs = (Map.Entry)it.next();

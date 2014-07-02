@@ -26,7 +26,7 @@ public class PassiveAggressiveOptimizer extends SGDOptimizer<RealValuedLabel> {
              *  Classification. Scale update by label in {-1, 1}.
              */
             update = update * (2.0 * (instance.getLabel().getValue() - 0.5));
-        } else if (instance.getLabel().getValue() - model.predict(instance.getVector()).getValue() < 0.0) {
+        } else if (instance.getLabel().getValue() - ((RealValuedLabel)model.predict(instance.getVector())).getValue() < 0.0) {
             /** Regression **/
             update = update * -1;
         }
