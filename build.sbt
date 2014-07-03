@@ -4,7 +4,7 @@ import aether.Aether._
 
 name := "conjecture"
 
-version := "0.1.1-SNAPSHOT"
+version := "0.1.1"
 
 organization := "com.etsy"
 
@@ -22,8 +22,6 @@ publishArtifact in packageDoc := false
 
 resolvers ++= {
   Seq(
-      "snapshots" at "http://oss.sonatype.org/content/repositories/snapshots",
-      "releases" at "http://oss.sonatype.org/content/repositories/releases",
       "Concurrent Maven Repo" at "http://conjars.org/repo",
       "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
   )
@@ -69,17 +67,53 @@ libraryDependencies += "com.novocode" % "junit-interface" % "0.10" % "test"
 
 parallelExecution in Test := false
 
+publishArtifact in Test := false
+
 seq(assemblySettings: _*)
 
-// replace with your publish settings
-publishTo <<= version { (v: String) =>
-  val archivaURL = "http://ivy.etsycorp.com/repository"
+publishTo <<= version { v : String =>
+  val nexus = "https://oss.sonatype.org/"
   if (v.trim.endsWith("SNAPSHOT")) {
-    Some("publish-snapshots" at (archivaURL + "/snapshots"))
+    Some("snapshots" at nexus + "content/repositories/snapshots")
   } else {
-    Some("publish-releases"  at (archivaURL + "/internal"))
+    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
   }
 }
+
+publishMavenStyle := true
+
+pomIncludeRepository := { x => false }
+
+pomExtra := (
+  <url>https://github.com/etsy/Conjecture</url>
+  <licenses>
+    <license>
+      <name>MIT License</name>
+      <url>http://opensource.org/licenses/MIT</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <url>git@github.com:etsy/Conjecture.git</url>
+    <connection>scm:git:git@github.com:etsy/Conjecture.git</connection>
+  </scm>
+  <developers>
+    <developer>
+      <id>jattenberg</id>
+      <name>Josh Attenberg</name>
+      <url>github.com/jattenberg</url>
+    </developer>
+    <developer>
+      <id>rjhall</id>
+      <name>Rob Hall</name>
+      <url>github.com/rjhall</url>
+    </developer>
+  </developers>
+)
+
+
+credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
+
 
 seq(aetherPublishSettings: _*)
 
