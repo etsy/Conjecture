@@ -104,4 +104,10 @@ public class FTRLOptimizer extends SGDOptimizer {
         return this;
     }
 
+    @Override
+    public void teardown() {
+        z = new StringKeyedVector();
+        n = new StringKeyedVector();
+    }
+
 }

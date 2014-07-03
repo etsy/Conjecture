@@ -126,6 +126,7 @@ class MulticlassModelTrainer(args: Args, categories: Array[String]) extends Abst
     override def modelPostProcess(m: UpdateableMulticlassLinearModel) : UpdateableMulticlassLinearModel = {
         m.thresholdParameters(finalThresholding)
         m.setArgString(args.toString)
+        m.teardown()
         m
     }
 

@@ -131,6 +131,7 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     override def modelPostProcess(m: UpdateableLinearModel[BinaryLabel]): UpdateableLinearModel[BinaryLabel] = {
         m.thresholdParameters(finalThresholding)
         m.setArgString(args.toString)
+        m.teardown()
         m
     }
 

@@ -59,6 +59,10 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
      */
     public abstract StringKeyedVector getUpdate(LabeledInstance<L> instance);
 
+    public void teardown() {
+        
+    }
+
     /**
      *  Implements lazy updating of regularization when the regularization
      *  updates aren't sparse (e.g. elastic net l1 and l2, adagrad l1).

@@ -125,6 +125,10 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         epoch += model.epoch;
     }
 
+    public void teardown() {
+        optimizer.teardown();
+    }
+
     /**
      *  Decide based on period and epoch whether to truncate
      */

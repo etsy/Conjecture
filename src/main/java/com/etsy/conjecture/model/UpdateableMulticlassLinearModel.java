@@ -125,6 +125,12 @@ public class UpdateableMulticlassLinearModel implements
         epoch += model.epoch;
     }
 
+    public void teardown() {
+        for (Map.Entry<String, UpdateableLinearModel<BinaryLabel>> e : param.entrySet()) {
+            e.getValue().teardown();
+        }
+    }
+
     public long getEpoch() {
         return epoch;
     }

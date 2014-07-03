@@ -51,4 +51,9 @@ public class ControlOptimizer extends SGDOptimizer {
     public double getFeatureLearningRate(String feature) {
         return initialLearningRate/Math.sqrt(gradients.getCoordinate(feature));
     }
+
+    @Override
+    public void teardown() {
+        gradients = new StringKeyedVector();
+    }
 }

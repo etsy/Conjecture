@@ -90,4 +90,11 @@ public class AdagradOptimizer extends SGDOptimizer {
         }
         return param;
     }
+
+    @Override
+    public void teardown() {
+        gradients = new StringKeyedVector();
+        unnormalizedGradients = new StringKeyedVector();
+    }
+
 }
