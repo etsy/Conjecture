@@ -83,7 +83,6 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     val ftrlAlpha = args.getOrElse("ftrlAlpha", "1.0").toDouble
     val ftrlBeta = args.getOrElse("ftrlBeta", "1.0").toDouble
 
-
     /**
      *  Choose an optimizer to use
      */
@@ -92,6 +91,8 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
             case "adagrad" => new AdagradOptimizer()
             case "passive_aggressive" => new PassiveAggressiveOptimizer().setC(aggressiveness).isHinge(true)
             case "ftrl" => new FTRLOptimizer().setAlpha(ftrlAlpha).setBeta(ftrlBeta)
+            case "control" => new ControlOptimizer()
+            case "mira" => new MIRAOptimizer()
         }
 
     val optimizer = o.setGaussianRegularizationWeight(gauss)
@@ -133,12 +134,16 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
         m
     }
 
+    if(modelType == "mira" && optimizerType != "mira"){
+        throw new IllegalArgumentException("MIRA only uses a MIRAOptimizer");
+    }
+
     def getModel: UpdateableLinearModel[BinaryLabel] = {
         val model = modelType match {
             case "perceptron" => new Hinge(optimizer).setThreshold(0.0)
             case "linear_svm" => new Hinge(optimizer).setThreshold(1.0)
             case "logistic_regression" => new LogisticRegression(optimizer)
-            case "mira" => new MIRA(new MIRAOptimizer())
+            case "mira" => new MIRA(optimizer)
         }
         model.setTruncationPeriod(truncationPeriod)
              .setTruncationThreshold(truncationThresh)

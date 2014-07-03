@@ -12,7 +12,7 @@ import com.etsy.conjecture.data.RealValuedLabel;
  *  MIRA takes care of the full update. This is basically just a passthrough to
  *  the MIRA getGradients.
  */
-public class MIRAOptimizer extends SGDOptimizer<RealValuedLabel> {
+public class MIRAOptimizer extends SGDOptimizer {
 
     @Override
     public StringKeyedVector getUpdate(LabeledInstance instance) {

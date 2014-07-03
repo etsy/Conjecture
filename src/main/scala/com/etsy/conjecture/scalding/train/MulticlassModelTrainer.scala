@@ -137,6 +137,7 @@ class MulticlassModelTrainer(args: Args, categories: Array[String]) extends Abst
             case "adagrad" => new AdagradOptimizer()
             case "passive_aggressive" => new PassiveAggressiveOptimizer().setC(aggressiveness).isHinge(true)
             case "ftrl" => new FTRLOptimizer().setAlpha(ftrlAlpha).setBeta(ftrlBeta)
+            case "mira" => new MIRAOptimizer()
         }
 
     val optimizer = o.setGaussianRegularizationWeight(gauss)
@@ -156,12 +157,16 @@ class MulticlassModelTrainer(args: Args, categories: Array[String]) extends Abst
         new UpdateableMulticlassLinearModel(new java.util.HashMap[String,UpdateableLinearModel[BinaryLabel]](param) )
     }
 
+    if(modelType == "mira" && optimizerType != "mira"){
+        throw new IllegalArgumentException("MIRA only uses a MIRAOptimizer");
+    }
+
     def getModel: UpdateableMulticlassLinearModel = {
       val model = modelType match {
         case "perceptron" => buildMultiClassModel(new Hinge(optimizer).setThreshold(0.0), categories)
         case "linear_svm" => buildMultiClassModel(new Hinge(optimizer).setThreshold(1.0), categories)
         case "logistic_regression" => buildMultiClassModel(new LogisticRegression(optimizer), categories)
-        case "mira" => buildMultiClassModel(new MIRA(new MIRAOptimizer()), categories)
+        case "mira" => buildMultiClassModel(new MIRA(optimizer), categories)
       }
       model.setModelType(modelType)
       model

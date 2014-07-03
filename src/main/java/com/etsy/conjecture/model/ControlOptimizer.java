@@ -9,12 +9,10 @@ import java.util.Map;
 import java.util.Iterator;
 
 /**
- *  AdaGrad provides adaptive per-feature learning rates at each time step t.
- *  Described here: http://www.ark.cs.cmu.edu/cdyer/adagrad.pdf
+ *  Current search ads control. Remove after current exp.
  */
-public class AdagradOptimizer extends SGDOptimizer {
+public class ControlOptimizer extends SGDOptimizer {
 
-    private StringKeyedVector unnormalizedGradients = new StringKeyedVector();
     private StringKeyedVector gradients = new StringKeyedVector();
 
     @Override
@@ -47,47 +45,10 @@ public class AdagradOptimizer extends SGDOptimizer {
             gradUpdate = 1d+(gradient * gradient);
         }
         gradients.addToCoordinate(feature, gradUpdate);
-        unnormalizedGradients.addToCoordinate(feature, gradient);
         return getFeatureLearningRate(feature);
     }
 
     public double getFeatureLearningRate(String feature) {
         return initialLearningRate/Math.sqrt(gradients.getCoordinate(feature));
-    }
-
-    /**
-     *  Overrides the lazy l1 and l2 regularization in the base class
-     *  to do adagrad with l1 regularization.
-     *
-     *  Lazily calculates and applies the update that minimizes the l1
-     *  regularized objective. See "Adding l1 regularization" in
-     *  http://www.ark.cs.cmu.edu/cdyer/adagrad.pdf
-     */
-    @Override
-    public double lazyUpdate(String feature, double param, long start, long end) {
-        if (Utilities.floatingPointEquals(laplace, 0.0d)) {
-            return param;
-        }
-        for (long iter = start + 1; iter <= end; iter++) {
-            if (Utilities.floatingPointEquals(param, 0.0d)) {
-                return 0.0d;
-            }
-            if (laplace > 0.0) {
-                return adagradL1(feature, param, iter);
-            }
-        }
-        return param;
-    }
-
-    public double adagradL1(String feature, double param, long iter) {
-        double eta = (initialLearningRate*iter)/Math.sqrt(gradients.getCoordinate(feature));
-        double u = unnormalizedGradients.getCoordinate(feature);
-        double normalizedGradient = u/iter;
-        if (Math.abs(normalizedGradient) <= laplace) {
-            param = 0.0;
-        } else {
-            param = -(Math.signum(u) * eta * (normalizedGradient - laplace));
-        }
-        return param;
     }
 }
