@@ -143,7 +143,7 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
             case "perceptron" => new Hinge(optimizer).setThreshold(0.0)
             case "linear_svm" => new Hinge(optimizer).setThreshold(1.0)
             case "logistic_regression" => new LogisticRegression(optimizer)
-            case "mira" => new MIRA(optimizer)
+            case "mira" => new MIRA()
         }
         model.setTruncationPeriod(truncationPeriod)
              .setTruncationThreshold(truncationThresh)

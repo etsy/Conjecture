@@ -9,8 +9,8 @@ public class MIRA extends UpdateableLinearModel<BinaryLabel> {
 
     private static final long serialVersionUID = 1L;
 
-    public MIRA(SGDOptimizer optimizer) {
-        super(optimizer);
+    public MIRA() {
+        super(new MIRAOptimizer());
     }
 
     public MIRA(StringKeyedVector param, SGDOptimizer optimizer) {
