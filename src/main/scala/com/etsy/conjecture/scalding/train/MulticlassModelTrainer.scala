@@ -166,7 +166,7 @@ class MulticlassModelTrainer(args: Args, categories: Array[String]) extends Abst
         case "perceptron" => buildMultiClassModel(new Hinge(optimizer).setThreshold(0.0), categories)
         case "linear_svm" => buildMultiClassModel(new Hinge(optimizer).setThreshold(1.0), categories)
         case "logistic_regression" => buildMultiClassModel(new LogisticRegression(optimizer), categories)
-        case "mira" => buildMultiClassModel(new MIRA(optimizer), categories)
+        case "mira" => buildMultiClassModel(new MIRA(), categories)
       }
       model.setModelType(modelType)
       model
