@@ -24,7 +24,7 @@ class Conjecture_Finder {
      */
     private function parseFile($fp) {
         if (filesize($fp) > $this->config->getMaxFileSize()) {
-            throw new ConjectureException("model too big: " . $fp . " is " . filesize($fp) . "bytes");
+            throw new Conjecture_ConjectureException("model too big: " . $fp . " is " . filesize($fp) . "bytes");
         }
 
         $res = file($fp);
@@ -33,7 +33,7 @@ class Conjecture_Finder {
             $res = stripslashes($res);
             return $res;
         } else {
-            throw new ConjectureException("model file not found: $fp");
+            throw new Conjecture_ConjectureException("model file not found: $fp");
         }
     }
 
