@@ -13,7 +13,7 @@ class Conjecture_Finder {
      * Loads a model local to a user's vm.
      */
     public function getLocalModel($local_file_path) {
-        $model = json_decode(self::parseFile($local_file_path));
+        $model = json_decode($this->parseFile($local_file_path));
         $cv = new Conjecture_Vector($model->param->vector);
         $binary_classifier = new Conjecture_BinaryClassifier($cv);
         return $binary_classifier;
@@ -22,7 +22,11 @@ class Conjecture_Finder {
     /**
      * Decode model json at a given filepath.
      */
-    static function parseFile($fp) {
+    private function parseFile($fp) {
+        if (filesize($fp) > $this->config->getMaxFileSize()) {
+            throw new Exception("model too big: " . $fp . " is " . filesize($fp) . "bytes");
+        }
+
         $res = file($fp);
         if ($res) {
             $res = implode("", $res);
@@ -39,12 +43,12 @@ class Conjecture_Finder {
         }
 
         $fp = $this->config->getConjectureModelPath() . "/" . $file_name;
-        return self::parseFile($fp);
+        return $this->parseFile($fp);
     }
 
     public function getLatestModelForProblem($file_name) {
         $json = $this->getLatestModelJsonForProblem($file_name);
-        return json_decode($json, true);
+        return json_decode($json);
     }
 
     public function getLatestBinaryClassificationVectorForProblem($file_name) {
@@ -69,11 +73,11 @@ class Conjecture_Finder {
 
     public function getMulticlassClassifier($file_name) {
         $model_array = $this->getLatestModelForProblem($file_name);
-        $model_type = $model_array["modelType"];
+        $model_type = $model_array->modelType;
+        $category_params = [];
 
-        foreach ($model_array["param"] as $cat => $category_model) {
-            $categeory_params = $category_model["vector"];
-            $category_params[$cat] = new Conjecture_Vector($category_params);
+        foreach ($model_array->param as $cat => $category_model) {
+            $category_params[$cat] = new Conjecture_Vector($category_model->vector);
         }
 
         switch ($model_type) {
