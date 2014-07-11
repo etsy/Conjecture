@@ -54,12 +54,15 @@ class MulticlassModelTrainer(args: Args, categories: Array[String]) extends Abst
     // in which case the "epoch" will take a fractional amount equal to {# examples seen} / examples_per_epoch.
     val examplesPerEpoch = args.getOrElse("examples_per_epoch", "10000").toDouble
 
-    val classSampleProbabilities = args.getOrElse("class_probs", "").split(",").map {
-      s:String =>
-        val p = s.split(":")
-        (p(0), p(1).toDouble)
-    }
-    .toMap
+    val classSampleProbabilities = args.optional("class_probs")
+      .map { entries : String =>
+        entries.split(",").map {
+          s:String =>
+            val p = s.split(":")
+          (p(0), p(1).toDouble)
+        }.toMap
+      }
+      .getOrElse(Map[String, Double]())
 
     val classSampleProbabilityFile = args.optional("class_prob_file")
 
