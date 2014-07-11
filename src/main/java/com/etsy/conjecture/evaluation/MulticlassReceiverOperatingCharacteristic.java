@@ -101,6 +101,10 @@ public class MulticlassReceiverOperatingCharacteristic implements Serializable {
         return brierScore / numClasses;
     }
 
+    public double computePercent(String category) {
+        return classCounts.get(category) / (double) numExamples;
+    }
+
     public static double computeAUC(
             Collection<GenericPair<String, MulticlassPrediction>> labelsAndPredictions,
             String[] categories) {

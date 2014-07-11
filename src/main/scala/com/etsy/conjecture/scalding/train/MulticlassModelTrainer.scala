@@ -4,6 +4,7 @@ import cascading.pipe.Pipe
 import com.twitter.scalding._
 import com.etsy.conjecture.data._
 import com.etsy.conjecture.model._
+import scala.io.Source
 
 class MulticlassModelTrainer(args: Args, categories: Array[String]) extends AbstractModelTrainer[MulticlassLabel, UpdateableMulticlassLinearModel] with ModelTrainerStrategy[MulticlassLabel, UpdateableMulticlassLinearModel] {
 
@@ -53,7 +54,37 @@ class MulticlassModelTrainer(args: Args, categories: Array[String]) extends Abst
     // in which case the "epoch" will take a fractional amount equal to {# examples seen} / examples_per_epoch.
     val examplesPerEpoch = args.getOrElse("examples_per_epoch", "10000").toDouble
 
+    val classSampleProbabilities = args.optional("class_probs")
+      .map { entries : String =>
+        entries.split(",").map {
+          s:String =>
+            val p = s.split(":")
+          (p(0), p(1).toDouble)
+        }.toMap
+      }
+      .getOrElse(Map[String, Double]())
+
+    val classSampleProbabilityFile = args.optional("class_prob_file")
+
+    // stores sampling rates for different classes
+    lazy val probabilityMap : Map[String, Double] = {
+      val probs = categories.map{ c:String => (c, classSampleProbabilities.getOrElse(c, 1.0)) }.toMap
+
+      classSampleProbabilityFile match {
+        case Some(f) => probs ++ Source.fromFile(f).getLines().map{
+          s:String =>
+            val p = s.split(":")
+            (p(0), p(1).toDouble)
+        }.toMap
+        case None => probs
+      }
+    }
+
     override def getIters: Int = iters
+
+    override def sampleProb(l : MulticlassLabel) : Double = {
+      probabilityMap.getOrElse(l.getLabel(), 1.0)
+    }
 
     override def modelPostProcess(m: UpdateableMulticlassLinearModel) : UpdateableMulticlassLinearModel = {
         m.thresholdParameters(finalThresholding)
