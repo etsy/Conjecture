@@ -67,9 +67,7 @@ class MulticlassModelTrainer(args: Args, categories: Array[String]) extends Abst
     val classSampleProbabilityFile = args.optional("class_prob_file")
 
     // stores sampling rates for different classes
-    val probabilityMap = setProbabilityMap()
-
-    def setProbabilityMap() : Map[String, Double] = {
+    lazy val probabilityMap : Map[String, Double] = {
       val probs = categories.map{ c:String => (c, classSampleProbabilities.getOrElse(c, 1.0)) }.toMap
 
       classSampleProbabilityFile match {
