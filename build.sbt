@@ -4,7 +4,7 @@ import aether.Aether._
 
 name := "conjecture"
 
-version := "0.1.1"
+version := "0.1.2-SNAPSHOT"
 
 organization := "com.etsy"
 

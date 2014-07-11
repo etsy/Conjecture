@@ -99,12 +99,17 @@ public class MulticlassModelEvaluation implements Serializable,
         return conf.computeRecall(dim);
     }
 
+    public double computePercent(String dim) {
+        return ROC.computePercent(dim);
+    }
+
     public String printDebug() {
         return conf.printDebug();
     }
 
     public Map<String, Double> getStatistics() {
         SortedMap<String, Double> m = new TreeMap<String, Double>();
+
         m.put("AUC (avg)", computeAUC());
         m.put("Brier (avg)", computeBrier());
         m.put("Acc (avg)", computeAccy());
@@ -113,6 +118,7 @@ public class MulticlassModelEvaluation implements Serializable,
         m.put("Rec (avg)", computeRecall());
 
         for (String category : categories) {
+            m.put(category + ": Pct", computePercent(category));
             m.put(category + ": AUC", computeAUC(category));
             m.put(category + ": Acc", computeAccy(category));
             m.put(category + ": F1", computeFmeasure(category));
