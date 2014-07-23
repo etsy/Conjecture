@@ -26,11 +26,15 @@ import scala.io.Source
  *                            of the number of centers.
  *    --kmeans_iters : The number of iterations to cluster the original dataset.
  *    --input : Path on hdfs to the dataset to be clustered. Dataset should be a pipe
- *              of (id_field : String, instance_field : StringKeyedVector)
+ *              of (id_field : String, instance_field : StringKeyedVector).
  *    --out_dir : Path where intermediate data, final cluster centers, and assignments
  *                will be written.
- *    --id_field : Symbol for the id of the point being clustered, (e.g. doc_id)
- *    --instance_field : Symbol for the point being clustered, (e.g. document)
+ *    --id_field : Symbol for the id of the point being clustered, (e.g. doc_id).
+ *    --instance_field : Symbol for the point being clustered, (e.g. document).
+ *    --sparsify : Whether or not to enforce cluster center sparsity.
+ *    --ball_radius : Radius of ball to project cluster centers on to in l1 projection.
+ *                    E.g. 10^-1 == more sparse, 10^2 == less sparse.
+ *    --error_tolerance : Error tolerance in the e-accurate l1 projection.
  */
 class AdHocClustererTest(args: Args) extends Job(args) {
 
@@ -58,7 +62,12 @@ class AdHocClustererTest(args: Args) extends Job(args) {
     /*
      * Number of centers to oversample in the initialization phase
      */
-    val take_per_round = Math.floor(num_clusters * oversampling_factor).toInt
+    val take_per_round = math.floor(num_clusters * oversampling_factor).toInt
+
+    /*
+     * Whether or not to enforce cluster center sparsity via l1 projection
+     */
+    val sparsify = args.getOrElse("sparsify","true").toBoolean
 
     /*
      * Error tolerance for the l1 projection
@@ -68,7 +77,7 @@ class AdHocClustererTest(args: Args) extends Job(args) {
     /*
      * Ball radius for the l1 projection
      */
-    val ball_radius = args.getOrElse("ball_radius","1.0").toDouble
+    val ball_radius = args.getOrElse("ball_radius","10.0").toDouble
 
     /**
      * Read in the pipe of data to be clustered
@@ -210,8 +219,10 @@ class AdHocClustererTest(args: Args) extends Job(args) {
           fields : (StringKeyedVector, Double) =>
           var (centroid, denom) = fields
           centroid.mul(1.0/denom)
+          if(sparsify){
+            l1Projection(centroid, error_tolerance, ball_radius)
+          }
           centroid
-          l1Projection(centroid, error_tolerance, ball_radius)
         }
         .project('assignment, 'cluster)
 
@@ -246,7 +257,7 @@ class AdHocClustererTest(args: Args) extends Job(args) {
      *  Returns the cosine distance between a point and its closest center.
      */
     def distanceToClosestCenter(point : StringKeyedVector, centers : List[StringKeyedVector]) : Double = {
-      centers.map(center => computeDistance(point, center)).minBy{_._2}._2
+      centers.map(center => computeDistance(point, center)).min
     }
 
     /**
