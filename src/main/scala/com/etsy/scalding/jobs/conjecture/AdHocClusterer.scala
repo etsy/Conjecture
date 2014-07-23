@@ -74,7 +74,6 @@ class AdHocClustererTest(args: Args) extends Job(args) {
      * Read in the pipe of data to be clustered
      */
     lazy val instances = SequenceFile(input, (id_field, instance_field)).read
-    .map(instance_field -> instance_field){ i : Map[String,Double] => var skv = new StringKeyedVector(); i.foreach(i => skv.setCoordinate(i._1, i._2)); skv }
 
     /**
      * Define centers based on the current iteration
@@ -247,7 +246,7 @@ class AdHocClustererTest(args: Args) extends Job(args) {
      *  Returns the cosine distance between a point and its closest center.
      */
     def distanceToClosestCenter(point : StringKeyedVector, centers : List[StringKeyedVector]) : Double = {
-      centers.map(center => computeDistance(point, center)).sorted.take(1)(0)
+      centers.map(center => computeDistance(point, center)).minBy{_._2}._2
     }
 
     /**
@@ -265,7 +264,7 @@ class AdHocClustererTest(args: Args) extends Job(args) {
      */
     def assignCluster(point : StringKeyedVector, centers : Map[String,StringKeyedVector]) : String = {
       val distances = centers.toList.map(i => (i._1, computeDistance(point, i._2)))
-      distances.sortBy(_._2).take(1).head._1
+      distances.minBy{_._2}._1
     }
 
     /**
