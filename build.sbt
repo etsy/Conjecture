@@ -51,7 +51,7 @@ libraryDependencies += "io.backchat.jerkson" % "jerkson_2.9.2" % "0.7.0"
 
 libraryDependencies += "com.google.guava" % "guava" % "13.0.1"
 
-libraryDependencies += "org.apache.commons" % "commons-math3" % "3.0"
+libraryDependencies += "org.apache.commons" % "commons-math3" % "3.2"
 
 libraryDependencies += "org.apache.hadoop" % "hadoop-common" % "2.0.0-cdh4.1.1" exclude("commons-daemon", "commons-daemon")
 
