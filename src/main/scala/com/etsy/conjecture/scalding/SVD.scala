@@ -10,25 +10,27 @@ object SVD extends Serializable {
 
   import com.twitter.scalding.Dsl._
 
-  // based on http://amath.colorado.edu/faculty/martinss/Pubs/2012_halko_dissertation.pdf
-  // page 121.
-
-  // generic parameters:
-  // R: the type of the row name variable.
-  // C: the type of the column name variable.
-  //
-  // input:
-  // X: a sparse matrix in the form ('row, 'col, 'val), with tuples of type (R, C, Double).
-  // d: number of principle components / singular values to compute
-  // extra_power: whether to take the second power of XX' in order to improve the approximation quality.
-  // reducers: how many reducers to use in the map-reduce stages.
-  //
-  // output:
-  // (U, E, V) with
-  // U : pipe of ('row, 'vec) where vec is a RealVector
-  // E : pipe of 'E which is an Array[Double] of singular values.
-  // V : pipe of ('col, 'vec) where vec is a RealVector
-  // note that the vectors are rows of the matrices U and V, not the columns which correspond to the left and right singular vectors.
+  /**
+  * based on http://amath.colorado.edu/faculty/martinss/Pubs/2012_halko_dissertation.pdf
+  * page 121.
+  *
+  * generic parameters:
+  * R: the type of the row name variable.
+  * C: the type of the column name variable.
+  *
+  * input:
+  * X: a sparse matrix in the form ('row, 'col, 'val), with tuples of type (R, C, Double).
+  * d: number of principle components / singular values to compute
+  * extra_power: whether to take the second power of XX' in order to improve the approximation quality.
+  * reducers: how many reducers to use in the map-reduce stages.
+  *
+  * output:
+  * (U, E, V) with
+  * U : pipe of ('row, 'vec) where vec is a RealVector
+  * E : pipe of 'E which is an Array[Double] of singular values.
+  * V : pipe of ('col, 'vec) where vec is a RealVector
+  * note that the vectors are rows of the matrices U and V, not the columns which correspond to the left and right singular vectors.
+  */
   def apply[R, C](X : Pipe, d : Int, extra_power : Boolean = true, reducers : Int = 500) : (Pipe, Pipe, Pipe) = {
 
     // Sample the columns, into the thin matrix.
