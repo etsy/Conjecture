@@ -1,11 +1,10 @@
 package com.etsy.conjecture.scalding
 
 import org.apache.commons.math3.linear._
-import com.twitter.scalding.Mode
-import cascading.flow.FlowDef
 import cascading.pipe.Pipe
 import cascading.pipe.joiner.InnerJoin
 import cascading.tuple.Fields
+import scala.util.Random
 
 object SVD extends Serializable {
 
@@ -30,14 +29,14 @@ object SVD extends Serializable {
   // E : pipe of 'E which is an Array[Double] of singular values.
   // V : pipe of ('col, 'vec) where vec is a RealVector
   // note that the vectors are rows of the matrices U and V, not the columns which correspond to the left and right singular vectors.
-  def apply[R, C](X : Pipe, d : Int, extra_power : Boolean = true, reducers : Int = 500)(implicit m_ : Mode, fd_ : FlowDef) : (Pipe, Pipe, Pipe) = {
+  def apply[R, C](X : Pipe, d : Int, extra_power : Boolean = true, reducers : Int = 500) : (Pipe, Pipe, Pipe) = {
 
     // Sample the columns, into the thin matrix.
     val XS = X.groupBy('row){_.toList[(C, Double)](('col, 'val) -> 'list).reducers(reducers)}
       .map('list -> 'vec){l : List[(C, Double)] =>
         val a = new Array[Double](d+10)
         l.foreach{i =>
-          val r = new scala.util.Random(i._1.hashCode.toLong)
+          val r = new Random(i._1.hashCode.toLong)
           (0 until (d+10)).foreach{j =>
             a(j) += r.nextGaussian * i._2
           }
