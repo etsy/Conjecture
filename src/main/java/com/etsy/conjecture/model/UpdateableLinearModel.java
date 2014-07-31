@@ -35,12 +35,9 @@ public abstract class UpdateableLinearModel<L extends Label> implements
     private int period = 0;
     private double truncationUpdate = 0.1;
     private double truncationThreshold = 0.0;
+    private ExponentialLearningRate truncationLearningRate; 
 
     private String argString = "NOT SET";
-
-    protected LearningRateComputation rateComputer = new LearningRateComputation();
-    protected RegularizationUpdater regularizer = new RegularizationUpdater(
-            rateComputer);
 
     public void setArgString(String s) {
         argString = s;
@@ -54,13 +51,13 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         return param.dot(x);
     }
 
-    protected UpdateableLinearModel() {
+    protected UpdateableLinearModel(RegularizationUpdater regularizer) {
         this.param = new LazyVector(100, regularizer);
         epoch = 0;
         modelType = getModelType();
     }
 
-    protected UpdateableLinearModel(StringKeyedVector param) {
+    protected UpdateableLinearModel(StringKeyedVector param, RegularizationUpdater regularizer) {
         this.param = new LazyVector(param, regularizer);
         epoch = 0;
         modelType = getModelType();
@@ -135,12 +132,8 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         epoch += model.epoch;
     }
 
-    public double computeLearningRate() {
-        return rateComputer.computeLearningRate(epoch);
-    }
-
     private void applyTruncation(StringKeyedVector instance) {
-        final double update = computeLearningRate() * truncationUpdate;
+        final double update = this.truncationLearningRate.computeLearningRate(epoch) * truncationUpdate;
         final double threshold = truncationThreshold;
 
         TDoubleFunction truncFn = new TDoubleFunction() {
@@ -167,36 +160,6 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         epoch = e;
     }
 
-    public UpdateableLinearModel<L> setInitialLearningRate(double rate) {
-        checkArgument(rate > 0, "period must be positive, given: %s", rate);
-        rateComputer.initialLearningRate = rate;
-        return this;
-    }
-
-    public UpdateableLinearModel<L> setUseExponentialLearningRate(boolean b) {
-        rateComputer.useExponentialLearningRate = b;
-        return this;
-    }
-
-    public UpdateableLinearModel<L> setExponentialLearningRateBase(double base) {
-        checkArgument(base > 0,
-                "exponential learning rate base must be positive, given: %f",
-                base);
-        checkArgument(
-                base <= 1.0,
-                "exponential learning rate base must be at most 1.0, given: %f",
-                base);
-        rateComputer.exponentialLearningRateBase = base;
-        return this;
-    }
-
-    public UpdateableLinearModel<L> setExamplesPerEpoch(double examples) {
-        checkArgument(examples > 0,
-                "examples per epoch musht be positive, given %f", examples);
-        rateComputer.examplesPerEpoch = examples;
-        return this;
-    }
-
     public UpdateableLinearModel<L> setTruncationPeriod(int period) {
         checkArgument(period >= 0, "period must be non-negative, given: %s",
                 period);
@@ -218,14 +181,8 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         return this;
     }
 
-    public UpdateableLinearModel<L> setLaplaceRegularizationWeight(double weight) {
-        regularizer.laplace = weight;
-        return this;
-    }
-
-    public UpdateableLinearModel<L> setGaussianRegularizationWeight(
-            double weight) {
-        regularizer.gaussian = weight;
+    public UpdateableLinearModel<L> setTruncationLearningRate(ExponentialLearningRate rateSchedule) {
+        this.truncationLearningRate = rateSchedule;
         return this;
     }
 

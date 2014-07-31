@@ -24,6 +24,13 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     // 4. mira
     val modelType = args.getOrElse("model", "passive_aggressive").toString
 
+
+    // What type of learning rate schedule?
+    // options are:
+    // 1. exponential
+    // 2. adagrad
+    val learningRateSchedule = args.getOrElse("learning_rate_schedule", "exponential").toString
+
     val finalThresholding = args.getOrElse("final_thresholding", "0.0").toDouble
 
     // weight on laplace regularization- a laplace prior on the parameters
@@ -66,6 +73,38 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     val zeroClassProb = args.getOrElse("zero_class_prob", "1.0").toDouble
     val oneClassProb = args.getOrElse("one_class_prob", "1.0").toDouble
 
+    val adaptive_reg = args.getOrElse("adaptive_reg", "true").toBoolean
+
+    /**
+     *  Learning rate schedule for stochastic gradient descent classifiers
+     */
+    val rateComputer = learningRateSchedule match {
+        case "exponential" => new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
+                                                           .setUseExponentialLearningRate(useExponentialLearningRate)
+                                                           .setExponentialLearningRateBase(exponentialLearningRateBase)
+                                                           .setInitialLearningRate(initialLearningRate)
+        case "adagrad" => new Adagrad().setInitialLearningRate(initialLearningRate)
+    }
+
+    /**
+     *  Learning rate schedule for regularization
+     */
+    val regularizerExponentialLearningRate = new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
+                                             .setUseExponentialLearningRate(useExponentialLearningRate)
+                                             .setExponentialLearningRateBase(exponentialLearningRateBase)
+                                             .setInitialLearningRate(initialLearningRate)
+
+    val regularizer = new RegularizationUpdater(regularizerExponentialLearningRate, gauss, laplace);
+
+    /**
+     *  Learning rate schedule for truncation
+     */
+    val truncationExponentialLearningRate = new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
+                                            .setUseExponentialLearningRate(useExponentialLearningRate)
+                                            .setExponentialLearningRateBase(exponentialLearningRateBase)
+                                            .setInitialLearningRate(initialLearningRate)
+
+
     // Size of minibatch for mini-batch training, defaults to 1 which is just SGD.
     val batchsz = args.getOrElse("mini_batch_size", "1").toInt
     override def miniBatchSize: Int = batchsz
@@ -90,21 +129,16 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
 
     def getModel: UpdateableLinearModel[BinaryLabel] = {
         val model = modelType match {
-            case "perceptron" => new Perceptron()
+            case "perceptron" => new Perceptron(rateComputer, regularizer)
             case "passive_aggressive" => new PassiveAggressive().setC(aggressiveness)
-            case "logistic_regression" => new LogisticRegression()
+            case "logistic_regression" => new LogisticRegression(rateComputer, regularizer)
             case "mira" => new MIRA()
             case "adagrad_logistic" => new AdaGradLogistic().setLearningRate(initialLearningRate)
         }
-        model.setLaplaceRegularizationWeight(laplace)
-            .setGaussianRegularizationWeight(gauss)
-            .setTruncationPeriod(truncationPeriod)
+        model.setTruncationPeriod(truncationPeriod)
             .setTruncationThreshold(truncationThresh)
             .setTruncationUpdate(truncationAlpha)
-            .setInitialLearningRate(initialLearningRate)
-            .setUseExponentialLearningRate(useExponentialLearningRate)
-            .setExponentialLearningRateBase(exponentialLearningRateBase)
-            .setExamplesPerEpoch(examplesPerEpoch)
+            .setTruncationLearningRate(truncationExponentialLearningRate)
         model
     }
 

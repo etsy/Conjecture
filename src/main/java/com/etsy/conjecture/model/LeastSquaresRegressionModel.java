@@ -5,16 +5,19 @@ import com.etsy.conjecture.data.RealValuedLabel;
 import com.etsy.conjecture.data.StringKeyedVector;
 
 public class LeastSquaresRegressionModel extends
-        UpdateableLinearModel<RealValuedLabel> {
+        SGDLinearClassifier<RealValuedLabel> {
 
     private static final long serialVersionUID = 1L;
 
-    public LeastSquaresRegressionModel() {
-        super();
+    public LeastSquaresRegressionModel(LearningRateComputation rateComputer, 
+                                       RegularizationUpdater regularizer) {
+        super(rateComputer, regularizer);
     }
 
-    public LeastSquaresRegressionModel(StringKeyedVector param) {
-        super(param);
+    public LeastSquaresRegressionModel(StringKeyedVector param, 
+                                       LearningRateComputation rateComputer,
+                                       RegularizationUpdater regularizer) {
+        super(param, rateComputer, regularizer);
     }
 
     @Override
@@ -23,12 +26,13 @@ public class LeastSquaresRegressionModel extends
     }
 
     @Override
-    public void updateRule(LabeledInstance<RealValuedLabel> instance,
-            double bias) {
-        double prediction = param.dot(instance.getVector()) + bias;
+    public StringKeyedVector getGradients(LabeledInstance<RealValuedLabel> instance,
+                                          double bias) {
+        StringKeyedVector gradients = instance.getVector();
+        double hypothesis = param.dot(instance.getVector()) + bias;
         double label = instance.getLabel().getValue();
-        param.addScaled(instance.getVector(), 2 * computeLearningRate()
-                * (prediction - label));
+        gradients.mul((2 * (hypothesis-label)));
+        return gradients;
     }
 
     @Override

@@ -4,17 +4,23 @@ import com.etsy.conjecture.data.LazyVector;
 import com.etsy.conjecture.Utilities;
 
 
-class RegularizationUpdater implements LazyVector.UpdateFunction {
+public class RegularizationUpdater implements LazyVector.UpdateFunction {
 
     private static final long serialVersionUID = 9153480933266800474L;
     double laplace = 0.0;
     double gaussian = 0.0;
-    LearningRateComputation computer = null;
+    ExponentialLearningRate computer = null;
 
     public RegularizationUpdater() {}
 
-    public RegularizationUpdater(LearningRateComputation c) {
+    public RegularizationUpdater(ExponentialLearningRate c) {
         computer = c;
+    }
+
+    public RegularizationUpdater(ExponentialLearningRate c, double g, double l) {
+        computer = c;
+        gaussian = g;
+        laplace = l;
     }
 
     public double update(double param, long start, long end) {
@@ -37,7 +43,7 @@ class RegularizationUpdater implements LazyVector.UpdateFunction {
         return param;
     }
 
-    public RegularizationUpdater setLearningRateComputation(LearningRateComputation computer) {
+    public RegularizationUpdater setLearningRateComputation(ExponentialLearningRate computer) {
         this.computer = computer;
         return this;
     }

@@ -5,16 +5,16 @@ import com.etsy.conjecture.data.BinaryLabel;
 import com.etsy.conjecture.data.LabeledInstance;
 import com.etsy.conjecture.data.StringKeyedVector;
 
-public class Perceptron extends UpdateableLinearModel<BinaryLabel> {
+public class Perceptron extends SGDLinearClassifier<BinaryLabel> {
 
     private static final long serialVersionUID = 1L;
 
-    public Perceptron() {
-        super();
+    public Perceptron(LearningRateComputation rateComputer, RegularizationUpdater regularizer) {
+        super(rateComputer, regularizer);
     }
 
-    public Perceptron(StringKeyedVector param) {
-        super(param);
+    public Perceptron(StringKeyedVector param, LearningRateComputation rateComputer, RegularizationUpdater regularizer) {
+        super(param, rateComputer, regularizer);
     }
 
     @Override
@@ -23,16 +23,17 @@ public class Perceptron extends UpdateableLinearModel<BinaryLabel> {
         return new BinaryLabel(Utilities.logistic(inner + bias));
     }
 
-    /**
-     * TODO: some annealing schedule on the learning rate.
-     */
     @Override
-    public void updateRule(LabeledInstance<BinaryLabel> instance, double bias) {
+    public StringKeyedVector getGradients(LabeledInstance<BinaryLabel> instance, double bias) {
+        StringKeyedVector gradients = instance.getVector();
+        double hypothesis = (param.dot(instance.getVector()) + bias);
         double label = instance.getLabel().getAsPlusMinus();
-        if ((param.dot(instance.getVector()) + bias) * label < 1.0) {
-            param.addScaled(instance.getVector(), computeLearningRate() * label);
-        }
-
+        if (hypothesis * label < 1.0) {
+            gradients.mul(label);
+            return gradients;
+        } else {
+            return new StringKeyedVector();
+        }        
     }
 
     @Override
