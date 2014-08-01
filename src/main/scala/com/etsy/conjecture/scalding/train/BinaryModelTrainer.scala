@@ -155,12 +155,6 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     override def modelPostProcess(m: UpdateableLinearModel[BinaryLabel]): UpdateableLinearModel[BinaryLabel] = {
         m.thresholdParameters(finalThresholding)
         m.setArgString(args.toString)
-
-        m match {
-          case ada : AdaGradLogistic => ada.setGradients(new StringKeyedVector())
-          case _  => m
-        }
-
     }
 
     def getModel: UpdateableLinearModel[BinaryLabel] = {
@@ -169,7 +163,6 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
             case "passive_aggressive" => new PassiveAggressive().setC(aggressiveness)
             case "logistic_regression" => new LogisticRegression(rateComputer, regularizer)
             case "mira" => new MIRA()
-            case "adagrad_logistic" => new AdaGradLogistic().setLearningRate(initialLearningRate)
         }
         model.setTruncationPeriod(truncationPeriod)
             .setTruncationThreshold(truncationThresh)
