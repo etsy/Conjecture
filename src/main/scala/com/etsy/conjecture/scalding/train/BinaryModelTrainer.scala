@@ -91,7 +91,7 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     /**
      *  Learning rate schedule for regularization
      */
-    val regularizerExponentialLearningRate = regularizationLearningRateSchedule match {
+    val regularizerLearningRate = regularizationLearningRateSchedule match {
         case "exponential" => new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
                                                            .setUseExponentialLearningRate(useRegExponentialLearningRate)
                                                            .setExponentialLearningRateBase(regExponentialLearningRateBase)
@@ -99,7 +99,7 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
         case "constant" => new ConstantLearningRate().setInitialLearningRate(regInitialLearningRate)
     }
 
-    val regularizer = new RegularizationUpdater(regularizerExponentialLearningRate, gauss, laplace);
+    val regularizer = new RegularizationUpdater(regularizerLearningRate, gauss, laplace);
 
     // period of gradient truncation updates
     val truncationPeriod = args.getOrElse("period", Int.MaxValue.toString).toInt
@@ -132,7 +132,7 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     /**
      *  Learning rate schedule for truncation
      */
-    val truncationExponentialLearningRate = truncationLearningRateSchedule match {
+    val truncationLearningRate = truncationLearningRateSchedule match {
         case "exponential" => new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
                                                            .setUseExponentialLearningRate(useTruncExponentialLearningRate)
                                                            .setExponentialLearningRateBase(truncExponentialLearningRateBase)
@@ -168,7 +168,7 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
         model.setTruncationPeriod(truncationPeriod)
             .setTruncationThreshold(truncationThresh)
             .setTruncationUpdate(truncationAlpha)
-            .setTruncationLearningRate(truncationExponentialLearningRate)
+            .setTruncationLearningRate(truncationLearningRate)
         model
     }
 

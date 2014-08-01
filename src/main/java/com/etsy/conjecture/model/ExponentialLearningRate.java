@@ -8,7 +8,6 @@ public class ExponentialLearningRate extends SingleLearningRate {
     double examplesPerEpoch = 10000;
     boolean useExponentialLearningRate = false;
     double exponentialLearningRateBase = 0.99;
-    // double initialLearningRate = 0.1;
 
     public double computeLearningRate(long t){
         double epoch_fudged = Math.max(1.0, (t + 1) / examplesPerEpoch);
