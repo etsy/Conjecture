@@ -16,6 +16,12 @@ import com.etsy.conjecture.data.LabeledInstance;
 import com.etsy.conjecture.data.LazyVector;
 import com.etsy.conjecture.data.StringKeyedVector;
 
+/**
+ *  Regularized linear models with stochastic gradient descent (SGD) learning.
+ *  For each training example, subclassing models estimate the gradient of the
+ *  loss, and update the model params with a decreasing strength schedule (aka
+ *  learning rate).
+ */
 public abstract class SGDLinearClassifier<L extends Label>
         extends UpdateableLinearModel<L> {
 
@@ -37,11 +43,18 @@ public abstract class SGDLinearClassifier<L extends Label>
     	return this;
     }
 
+    /**
+     *  Get a StringKeyedVector holding the gradient of the loss w.r.t. every model parameter.
+     */
     public abstract StringKeyedVector getGradients(LabeledInstance<L> instance, double bias);
 
+    /**
+     *  Update model weights using the gradients and the
+     *  learning rate schedule specified in BinaryModelTrainer.
+     */
     @Override
     public void updateRule(LabeledInstance<L> instance, double bias) {
-        StringKeyedVector gradients = getGradients(instance, bias); //skv mapping feature -> gradient
+        StringKeyedVector gradients = getGradients(instance, bias);
         Iterator it = gradients.iterator();
         while (it.hasNext()) {
             Map.Entry<String,Double> pairs = (Map.Entry)it.next();

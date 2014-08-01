@@ -35,7 +35,7 @@ public abstract class UpdateableLinearModel<L extends Label> implements
     private int period = 0;
     private double truncationUpdate = 0.1;
     private double truncationThreshold = 0.0;
-    private ExponentialLearningRate truncationLearningRate; 
+    private SingleLearningRate truncationLearningRate; 
 
     private String argString = "NOT SET";
 
@@ -181,7 +181,7 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         return this;
     }
 
-    public UpdateableLinearModel<L> setTruncationLearningRate(ExponentialLearningRate rateSchedule) {
+    public UpdateableLinearModel<L> setTruncationLearningRate(SingleLearningRate rateSchedule) {
         this.truncationLearningRate = rateSchedule;
         return this;
     }

@@ -4,6 +4,10 @@ import com.etsy.conjecture.data.StringKeyedVector;
 
 import java.io.Serializable;
 
+/**
+ *  AdaGrad provides a per-feature learning rate at each time step t.
+ *  Described here: http://www.ark.cs.cmu.edu/cdyer/adagrad.pdf
+ */
 public class Adagrad extends LearningRateComputation {
 
     private StringKeyedVector gradients = new StringKeyedVector();
@@ -23,9 +27,5 @@ public class Adagrad extends LearningRateComputation {
         checkArgument(rate > 0, "Initial learning rate must be greater than 0. Given: %s", rate);
         this.n = rate;
         return this;
-    }
-
-    protected String getLearningRateSchedule() {
-        return "adagrad";
     }
 }

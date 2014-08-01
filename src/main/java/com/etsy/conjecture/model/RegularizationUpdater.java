@@ -9,15 +9,15 @@ public class RegularizationUpdater implements LazyVector.UpdateFunction {
     private static final long serialVersionUID = 9153480933266800474L;
     double laplace = 0.0;
     double gaussian = 0.0;
-    ExponentialLearningRate computer = null;
+    SingleLearningRate computer = null;
 
     public RegularizationUpdater() {}
 
-    public RegularizationUpdater(ExponentialLearningRate c) {
+    public RegularizationUpdater(SingleLearningRate c) {
         computer = c;
     }
 
-    public RegularizationUpdater(ExponentialLearningRate c, double g, double l) {
+    public RegularizationUpdater(SingleLearningRate c, double g, double l) {
         computer = c;
         gaussian = g;
         laplace = l;
@@ -43,7 +43,7 @@ public class RegularizationUpdater implements LazyVector.UpdateFunction {
         return param;
     }
 
-    public RegularizationUpdater setLearningRateComputation(ExponentialLearningRate computer) {
+    public RegularizationUpdater setLearningRateComputation(SingleLearningRate computer) {
         this.computer = computer;
         return this;
     }

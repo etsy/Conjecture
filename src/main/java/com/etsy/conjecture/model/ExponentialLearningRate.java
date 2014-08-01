@@ -3,16 +3,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serializable;
 
-public class ExponentialLearningRate extends LearningRateComputation {
+public class ExponentialLearningRate extends SingleLearningRate {
 
     double examplesPerEpoch = 10000;
     boolean useExponentialLearningRate = false;
     double exponentialLearningRateBase = 0.99;
-    double initialLearningRate = 0.1;
-
-    public double computeFeatureLearningRate(String feature, long t, double gradient) {
-        return computeLearningRate(t);
-    }
+    // double initialLearningRate = 0.1;
 
     public double computeLearningRate(long t){
         double epoch_fudged = Math.max(1.0, (t + 1) / examplesPerEpoch);
@@ -50,15 +46,4 @@ public class ExponentialLearningRate extends LearningRateComputation {
         this.exponentialLearningRateBase = base;
         return this;
     }
-
-    public ExponentialLearningRate setInitialLearningRate(double rate) {
-        checkArgument(rate > 0, "Initial learning rate must be greater than 0. Given: %s", rate);
-        this.initialLearningRate = rate;
-        return this;
-    }
-
-    protected String getLearningRateSchedule() {
-        return "exponential";
-    }
-
 }

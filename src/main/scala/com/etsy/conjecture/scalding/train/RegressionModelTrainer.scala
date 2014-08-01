@@ -20,6 +20,12 @@ class RegressionModelTrainer(args: Args) extends AbstractModelTrainer[RealValued
     // 2. adagrad
     val learningRateSchedule = args.getOrElse("learning_rate_schedule", "exponential").toString
 
+    // What type of regularization learning rate schedule?
+    // options are:
+    // 1. exponential
+    // 2. constant
+    val regularizationLearningRateSchedule = args.getOrElse("reg_learning_rate_schedule", "exponential").toString
+
     // weight on laplace regularization- a laplace prior on the parameters
     // sparsity inducing ala lasso
     val laplace = args.getOrElse("laplace", "0.5").toDouble
@@ -45,20 +51,25 @@ class RegressionModelTrainer(args: Args) extends AbstractModelTrainer[RealValued
     val examplesPerEpoch = args.getOrElse("examples_per_epoch", "10000").toDouble
 
     /**
-     *  Learning rate schedule for regularization
+     *  Learning rate schedule for stochastic gradient descent
      */
-    val regularizerExponentialLearningRate = new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
-                                             .setUseExponentialLearningRate(useExponentialLearningRate)
-                                             .setExponentialLearningRateBase(exponentialLearningRateBase)
-                                             .setInitialLearningRate(initialLearningRate)
-
-
     val rateComputer = learningRateSchedule match {
         case "exponential" => new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
                                                            .setUseExponentialLearningRate(useExponentialLearningRate)
                                                            .setExponentialLearningRateBase(exponentialLearningRateBase)
                                                            .setInitialLearningRate(initialLearningRate)
         case "adagrad" => new Adagrad().setInitialLearningRate(initialLearningRate)
+    }
+
+    /**
+     *  Learning rate schedule for regularization
+     */
+    val regularizerExponentialLearningRate = regularizationLearningRateSchedule match {
+        case "exponential" => new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
+                                                           .setUseExponentialLearningRate(useExponentialLearningRate)
+                                                           .setExponentialLearningRateBase(exponentialLearningRateBase)
+                                                           .setInitialLearningRate(initialLearningRate)
+        case "constant" => new ConstantLearningRate().setInitialLearningRate(initialLearningRate)
     }
 
     val regularizer = new RegularizationUpdater(regularizerExponentialLearningRate, gauss, laplace);
