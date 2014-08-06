@@ -23,21 +23,6 @@ public class MIRA extends UpdateableLinearModel<BinaryLabel> {
         return new BinaryLabel(Utilities.logistic(inner + bias));
     }
 
-    // @Override
-    // public void updateRule(LabeledInstance<BinaryLabel> instance, double bias) {
-    //     // Override this instead of update rule to prevent against some
-    //     // truncation.
-    //     double label = instance.getLabel().getAsPlusMinus();
-    //     double prediction = param.dot(instance.getVector()) + bias;
-
-    //     double loss = Math.max(0, 1d - label * prediction);
-    //     if (loss > 0) {
-    //         double norm = instance.getVector().LPNorm(2d);
-    //         double tau = loss / (norm * norm);
-    //         param.addScaled(instance.getVector(), tau * label);
-    //     }
-    // }
-
     @Override
     public StringKeyedVector getGradients(LabeledInstance<BinaryLabel> instance, double bias) {
         double label = instance.getLabel().getAsPlusMinus();
