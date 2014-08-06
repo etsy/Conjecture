@@ -5,19 +5,16 @@ import com.etsy.conjecture.data.RealValuedLabel;
 import com.etsy.conjecture.data.StringKeyedVector;
 
 public class LeastSquaresRegressionModel extends
-        SGDLinearClassifier<RealValuedLabel> {
+        UpdateableLinearModel<RealValuedLabel> {
 
     private static final long serialVersionUID = 1L;
 
-    public LeastSquaresRegressionModel(LearningRateComputation rateComputer, 
-                                       RegularizationUpdater regularizer) {
-        super(rateComputer, regularizer);
+    public LeastSquaresRegressionModel(SGDOptimizer optimizer) {
+        super(optimizer);
     }
 
-    public LeastSquaresRegressionModel(StringKeyedVector param, 
-                                       LearningRateComputation rateComputer,
-                                       RegularizationUpdater regularizer) {
-        super(param, rateComputer, regularizer);
+    public LeastSquaresRegressionModel(StringKeyedVector param, SGDOptimizer optimizer) {
+        super(param, optimizer);
     }
 
     @Override

@@ -29,13 +29,14 @@ public abstract class UpdateableLinearModel<L extends Label> implements
 
     protected long epoch;
 
+    private SGDOptimizer optimizer;
+
     // parameters for gradient truncation
     // for more info, see:
     // http://jmlr.csail.mit.edu/papers/volume10/langford09a/langford09a.pdf
     private int period = 0;
     private double truncationUpdate = 0.1;
     private double truncationThreshold = 0.0;
-    private SingleLearningRate truncationLearningRate; 
 
     private String argString = "NOT SET";
 
@@ -51,24 +52,47 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         return param.dot(x);
     }
 
-    protected UpdateableLinearModel(RegularizationUpdater regularizer) {
-        this.param = new LazyVector(100, regularizer);
+    protected UpdateableLinearModel(SGDOptimizer optimizer) {
+        this.optimizer = optimizer;
+        this.param = new LazyVector(100, optimizer);
         epoch = 0;
         modelType = getModelType();
     }
 
-    protected UpdateableLinearModel(StringKeyedVector param, RegularizationUpdater regularizer) {
-        this.param = new LazyVector(param, regularizer);
+    protected UpdateableLinearModel(StringKeyedVector param, SGDOptimizer optimizer) {
+        this.optimizer = optimizer;
+        this.param = new LazyVector(param, optimizer);
         epoch = 0;
         modelType = getModelType();
     }
 
-    public abstract void updateRule(LabeledInstance<L> instance, double bias);
+    /**
+     *  Get a StringKeyedVector holding the gradient of the loss w.r.t. every model parameter.
+     */
+    public abstract StringKeyedVector getGradients(LabeledInstance<L> instance, double bias);
 
     public void updateRule(LabeledInstance<L> instance) {
         updateRule(instance, 0.0);
     }
 
+    /**
+     *  Take an SGD step and update model weights. This computes the
+     *  gradient of the loss then hands the feature, the current time
+     *  step, and the gradient to the selected optimizer to get the
+     *  weight update.
+     */
+    public void updateRule(LabeledInstance<L> instance, double bias) {
+        StringKeyedVector gradients = getGradients(instance, bias);
+        Iterator it = gradients.iterator();
+        while (it.hasNext()) {
+            Map.Entry<String,Double> pairs = (Map.Entry)it.next();
+            String feature = pairs.getKey();
+            double gradient = pairs.getValue();
+            double update = this.optimizer.getUpdate(feature, epoch, gradient);
+            param.addToCoordinate(feature, update);
+       }
+    }
+   
     public abstract L predict(StringKeyedVector instance, double bias);
 
     public L predict(StringKeyedVector instance) {
@@ -133,7 +157,7 @@ public abstract class UpdateableLinearModel<L extends Label> implements
     }
 
     private void applyTruncation(StringKeyedVector instance) {
-        final double update = this.truncationLearningRate.computeLearningRate(epoch) * truncationUpdate;
+        final double update = this.optimizer.getDecreasingLearningRate(epoch) * truncationUpdate;
         final double threshold = truncationThreshold;
 
         TDoubleFunction truncFn = new TDoubleFunction() {
@@ -178,11 +202,6 @@ public abstract class UpdateableLinearModel<L extends Label> implements
         checkArgument(update >= 0, "update must be non-negative, given: %s",
                 update);
         this.truncationUpdate = update;
-        return this;
-    }
-
-    public UpdateableLinearModel<L> setTruncationLearningRate(SingleLearningRate rateSchedule) {
-        this.truncationLearningRate = rateSchedule;
         return this;
     }
 

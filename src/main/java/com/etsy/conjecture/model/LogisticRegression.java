@@ -5,16 +5,16 @@ import com.etsy.conjecture.data.BinaryLabel;
 import com.etsy.conjecture.data.LabeledInstance;
 import com.etsy.conjecture.data.StringKeyedVector;
 
-public class LogisticRegression extends SGDLinearClassifier<BinaryLabel> {
+public class LogisticRegression extends UpdateableLinearModel<BinaryLabel> {
 
     private static final long serialVersionUID = 1L;
 
-    public LogisticRegression(LearningRateComputation rateComputer, RegularizationUpdater regularizer) {
-        super(rateComputer, regularizer);
+    public LogisticRegression(SGDOptimizer optimizer) {
+        super(optimizer);
     }
 
-    public LogisticRegression(StringKeyedVector param, LearningRateComputation rateComputer, RegularizationUpdater regularizer) {
-        super(param, rateComputer, regularizer);
+    public LogisticRegression(StringKeyedVector param, SGDOptimizer optimizer) {
+        super(param, optimizer);
     }
 
     public BinaryLabel predict(StringKeyedVector instance, double bias) {

@@ -5,16 +5,16 @@ import com.etsy.conjecture.data.BinaryLabel;
 import com.etsy.conjecture.data.LabeledInstance;
 import com.etsy.conjecture.data.StringKeyedVector;
 
-public class Perceptron extends SGDLinearClassifier<BinaryLabel> {
+public class Perceptron extends UpdateableLinearModel<BinaryLabel> {
 
     private static final long serialVersionUID = 1L;
 
-    public Perceptron(LearningRateComputation rateComputer, RegularizationUpdater regularizer) {
-        super(rateComputer, regularizer);
+    public Perceptron(SGDOptimizer optimizer) {
+        super(optimizer);
     }
 
-    public Perceptron(StringKeyedVector param, LearningRateComputation rateComputer, RegularizationUpdater regularizer) {
-        super(param, rateComputer, regularizer);
+    public Perceptron(StringKeyedVector param, SGDOptimizer optimizer) {
+        super(param, optimizer);
     }
 
     @Override

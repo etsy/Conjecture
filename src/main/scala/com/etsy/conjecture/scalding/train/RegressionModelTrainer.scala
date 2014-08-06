@@ -14,18 +14,6 @@ class RegressionModelTrainer(args: Args) extends AbstractModelTrainer[RealValued
 
     override def getIters: Int = iters
 
-    // What type of learning rate schedule?
-    // options are:
-    // 1. exponential
-    // 2. adagrad
-    val learningRateSchedule = args.getOrElse("learning_rate_schedule", "exponential").toString
-
-    // What type of regularization learning rate schedule?
-    // options are:
-    // 1. exponential
-    // 2. constant
-    val regularizationLearningRateSchedule = args.getOrElse("reg_learning_rate_schedule", "exponential").toString
-
     // weight on laplace regularization- a laplace prior on the parameters
     // sparsity inducing ala lasso
     val laplace = args.getOrElse("laplace", "0.5").toDouble
@@ -35,6 +23,16 @@ class RegressionModelTrainer(args: Args) extends AbstractModelTrainer[RealValued
     val gauss = args.getOrElse("gauss", "0.5").toDouble
 
     val modelType = "least_squares" // just one model type for regression at the moment
+
+    /**
+     *  What kind of learning rate schedule / regularization
+     *  should we use?
+     *
+     *  Options:
+     *    - Elastic net
+     *    - AdaGrad
+     */
+    val optimizerType = args.getOrElse("optimizer", "elastic_net")
 
     // initial learning rate used for SGD learning. this decays according to the
     // inverse of the epoch
@@ -51,32 +49,21 @@ class RegressionModelTrainer(args: Args) extends AbstractModelTrainer[RealValued
     val examplesPerEpoch = args.getOrElse("examples_per_epoch", "10000").toDouble
 
     /**
-     *  Learning rate schedule for stochastic gradient descent
+     *  Choose an optimizer to use
      */
-    val rateComputer = learningRateSchedule match {
-        case "exponential" => new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
-                                                           .setUseExponentialLearningRate(useExponentialLearningRate)
-                                                           .setExponentialLearningRateBase(exponentialLearningRateBase)
-                                                           .setInitialLearningRate(initialLearningRate)
-        case "adagrad" => new Adagrad().setInitialLearningRate(initialLearningRate)
+    val o = optimizerType match {
+        case "elastic_net" => new ElasticNetOptimizer()
+        case "adagrad" => new AdagradOptimizer()
     }
 
-    /**
-     *  Learning rate schedule for regularization
-     */
-    val regularizerExponentialLearningRate = regularizationLearningRateSchedule match {
-        case "exponential" => new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
-                                                           .setUseExponentialLearningRate(useExponentialLearningRate)
-                                                           .setExponentialLearningRateBase(exponentialLearningRateBase)
-                                                           .setInitialLearningRate(initialLearningRate)
-        case "constant" => new ConstantLearningRate().setInitialLearningRate(initialLearningRate)
-    }
-
-    val regularizer = new RegularizationUpdater(regularizerExponentialLearningRate, gauss, laplace);
+    val optimizer = o.setExamplesPerEpoch(examplesPerEpoch)
+                     .setUseExponentialLearningRate(useExponentialLearningRate)
+                     .setExponentialLearningRateBase(exponentialLearningRateBase)
+                     .setInitialLearningRate(initialLearningRate)
 
     def getModel: UpdateableLinearModel[RealValuedLabel] = {
         val model = modelType match {
-            case "least_squares" => new LeastSquaresRegressionModel(rateComputer, regularizer)
+            case "least_squares" => new LeastSquaresRegressionModel(optimizer)
         }
         model
     }

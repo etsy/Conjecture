@@ -11,12 +11,12 @@ public class PassiveAggressive extends UpdateableLinearModel<BinaryLabel> {
     private static final long serialVersionUID = 1L;
     private double C = 1d; // aggresiveness parameter
 
-    public PassiveAggressive() {
-        super();
+    public PassiveAggressive(SGDOptimizer optimizer) {
+        super(optimizer);
     }
 
-    public PassiveAggressive(StringKeyedVector param) {
-        super(param);
+    public PassiveAggressive(StringKeyedVector param, SGDOptimizer optimizer) {
+        super(param, optimizer);
     }
 
     @Override
@@ -25,8 +25,21 @@ public class PassiveAggressive extends UpdateableLinearModel<BinaryLabel> {
         return new BinaryLabel(Utilities.logistic(inner + bias));
     }
 
+    // @Override
+    // public void updateRule(LabeledInstance<BinaryLabel> instance, double bias) {
+    //     double label = instance.getLabel().getAsPlusMinus();
+    //     double prediction = param.dot(instance.getVector()) + bias;
+
+    //     double loss = Math.max(0, 1d - label * (prediction));
+    //     if (loss > 0) {
+    //         double norm = instance.getVector().LPNorm(2d);
+    //         double tau = loss / (norm * norm + 1d / (2d * C));
+    //         param.addScaled(instance.getVector(), tau * label);
+    //     }
+    // }
+
     @Override
-    public void updateRule(LabeledInstance<BinaryLabel> instance, double bias) {
+    public StringKeyedVector getGradients(LabeledInstance<BinaryLabel> instance, double bias) {
         double label = instance.getLabel().getAsPlusMinus();
         double prediction = param.dot(instance.getVector()) + bias;
 
@@ -34,9 +47,15 @@ public class PassiveAggressive extends UpdateableLinearModel<BinaryLabel> {
         if (loss > 0) {
             double norm = instance.getVector().LPNorm(2d);
             double tau = loss / (norm * norm + 1d / (2d * C));
-            param.addScaled(instance.getVector(), tau * label);
+            StringKeyedVector gradients = instance.getVector();
+            gradients.mul(tau * label);
+            return gradients;
+        } else {
+            return new StringKeyedVector();
         }
     }
+
+
 
     public PassiveAggressive setC(double C) {
         checkArgument(C > 0, "C must be greater than 0. Given: %s", C);

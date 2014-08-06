@@ -22,7 +22,19 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     // 2. passive_aggressive
     // 3. logistic_regression
     // 4. mira
-    val modelType = args.getOrElse("model", "passive_aggressive").toString
+    val modelType = args.getOrElse("model", "logistic_regression")
+
+    /**
+     *  What kind of learning rate schedule / regularization
+     *  should we use?
+     *
+     *  Options:
+     *    - Elastic net
+     *    - AdaGrad
+     */
+    val optimizerType = args.getOrElse("optimizer", "elastic_net")
+
+    val learningRate = args.getOrElse("learning_rate", "exponential")
 
     // aggressiveness parameter for passive aggressive classifier
     val aggressiveness = args.getOrElse("aggressiveness", "2.").toDouble
@@ -53,17 +65,6 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     val zeroClassProb = args.getOrElse("zero_class_prob", "1.0").toDouble
     val oneClassProb = args.getOrElse("one_class_prob", "1.0").toDouble
 
-    /**
-     *  Learning rate schedule for stochastic gradient descent classifiers
-     */
-    val rateComputer = learningRateSchedule match {
-        case "exponential" => new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
-                                                           .setUseExponentialLearningRate(useExponentialLearningRate)
-                                                           .setExponentialLearningRateBase(exponentialLearningRateBase)
-                                                           .setInitialLearningRate(initialLearningRate)
-        case "adagrad" => new Adagrad().setInitialLearningRate(initialLearningRate)
-    }
-
     // Weight on laplace regularization- a laplace prior on the parameters
     // sparsity inducing ala lasso
     val laplace = args.getOrElse("laplace", "0.0").toDouble
@@ -72,34 +73,17 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     // similar to ridge 
     val gauss = args.getOrElse("gauss", "0.0").toDouble
 
-    // What type of regularization learning rate schedule?
-    // options are:
-    // 1. exponential
-    // 2. constant
-    val regularizationLearningRateSchedule = args.getOrElse("reg_learning_rate_schedule", "exponential").toString
-
-    // Initial learning rate used for SGD learning. This decays according to the
-    // inverse of the epoch
-    val regInitialLearningRate = args.getOrElse("reg_rate", "0.1").toDouble
-
-    // Base of the exponential learning rate (e.g., 0.99^{# examples seen}).
-    val regExponentialLearningRateBase = args.getOrElse("reg_exponential_learning_rate_base", "1.0").toDouble
-
-    // Whether to use the exponential learning rate.  If not chosen then the learning rate is like 1.0 / epoch.
-    val useRegExponentialLearningRate = args.boolean("reg_exponential_learning_rate_base")
-
     /**
-     *  Learning rate schedule for regularization
+     *  Choose an optimizer to use
      */
-    val regularizerLearningRate = regularizationLearningRateSchedule match {
-        case "exponential" => new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
-                                                           .setUseExponentialLearningRate(useRegExponentialLearningRate)
-                                                           .setExponentialLearningRateBase(regExponentialLearningRateBase)
-                                                           .setInitialLearningRate(regInitialLearningRate)
-        case "constant" => new ConstantLearningRate().setInitialLearningRate(regInitialLearningRate)
+    val o = optimizerType match {
+        case "elastic_net" => new ElasticNetOptimizer()
+        case "adagrad" => new AdagradOptimizer()
     }
-
-    val regularizer = new RegularizationUpdater(regularizerLearningRate, gauss, laplace);
+    val optimizer = o.setExamplesPerEpoch(examplesPerEpoch)
+                     .setUseExponentialLearningRate(useExponentialLearningRate)
+                     .setExponentialLearningRateBase(exponentialLearningRateBase)
+                     .setInitialLearningRate(initialLearningRate)
 
     // period of gradient truncation updates
     val truncationPeriod = args.getOrElse("period", Int.MaxValue.toString).toInt
@@ -111,35 +95,6 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
     // threshold for applying gradient truncation updates
     // parameter values smaller than this in magnitude are truncated
     val truncationThresh = args.getOrElse("thresh", "0.0").toDouble
-
-
-    // What type of truncation learning rate schedule?
-    // options are:
-    // 1. exponential
-    // 2. constant
-    val truncationLearningRateSchedule = args.getOrElse("trunc_learning_rate_schedule", "exponential").toString
-
-    // initial learning rate used for SGD learning. this decays according to the
-    // inverse of the epoch
-    val truncInitialLearningRate = args.getOrElse("trunc_rate", "0.1").toDouble
-
-    // Base of the exponential learning rate (e.g., 0.99^{# examples seen}).
-    val truncExponentialLearningRateBase = args.getOrElse("trunc_exponential_learning_rate_base", "1.0").toDouble
-
-    // Whether to use the exponential learning rate.  If not chosen then the learning rate is like 1.0 / epoch.
-    val useTruncExponentialLearningRate = args.boolean("trunc_exponential_learning_rate_base")
-
-    /**
-     *  Learning rate schedule for truncation
-     */
-    val truncationLearningRate = truncationLearningRateSchedule match {
-        case "exponential" => new ExponentialLearningRate().setExamplesPerEpoch(examplesPerEpoch)
-                                                           .setUseExponentialLearningRate(useTruncExponentialLearningRate)
-                                                           .setExponentialLearningRateBase(truncExponentialLearningRateBase)
-                                                           .setInitialLearningRate(truncInitialLearningRate)
-        case "constant" => new ConstantLearningRate().setInitialLearningRate(truncInitialLearningRate)
-    }
-
 
     // Size of minibatch for mini-batch training, defaults to 1 which is just SGD.
     val batchsz = args.getOrElse("mini_batch_size", "1").toInt
@@ -160,15 +115,14 @@ class BinaryModelTrainer(args: Args) extends AbstractModelTrainer[BinaryLabel, U
 
     def getModel: UpdateableLinearModel[BinaryLabel] = {
         val model = modelType match {
-            case "perceptron" => new Perceptron(rateComputer, regularizer)
-            case "passive_aggressive" => new PassiveAggressive().setC(aggressiveness)
-            case "logistic_regression" => new LogisticRegression(rateComputer, regularizer)
-            case "mira" => new MIRA()
+            case "perceptron" => new Perceptron(optimizer)
+            case "passive_aggressive" => new PassiveAggressive(optimizer).setC(aggressiveness)
+            case "logistic_regression" => new LogisticRegression(optimizer)
+            case "mira" => new MIRA(optimizer)
         }
         model.setTruncationPeriod(truncationPeriod)
-            .setTruncationThreshold(truncationThresh)
-            .setTruncationUpdate(truncationAlpha)
-            .setTruncationLearningRate(truncationLearningRate)
+             .setTruncationThreshold(truncationThresh)
+             .setTruncationUpdate(truncationAlpha)
         model
     }
 
