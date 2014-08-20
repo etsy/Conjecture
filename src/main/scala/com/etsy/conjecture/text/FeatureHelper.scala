@@ -85,7 +85,7 @@ object FeatureHelper {
                     (null, "filter") // Filter this email
             }
         } catch {
-            case _ => (null, "filter")
+            case _ : Exception => (null, "filter")
         }
     }
 

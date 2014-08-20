@@ -10,6 +10,8 @@ organization := "com.etsy"
 
 scalaVersion := "2.9.3"
 
+crossScalaVersions := Seq("2.9.3", "2.10.4")
+
 sbtVersion := "0.12.1"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
@@ -39,15 +41,27 @@ libraryDependencies += "com.google.code.gson" % "gson" % "2.2.2"
 
 libraryDependencies += "com.twitter" % "maple" % "0.2.4"
 
-libraryDependencies += "com.twitter" % "algebird-core_2.9.2" % "0.1.12"
+libraryDependencies += "com.twitter" % "algebird-core" % "0.1.12" cross CrossVersion.binaryMapped {
+  case "2.9.3" => "2.9.2"
+  case _ => "2.10"
+}
 
-libraryDependencies += "com.twitter" % "scalding-core_2.9.2" % "0.8.5"
+libraryDependencies += "com.twitter" % "scalding-core" % "0.8.5" cross CrossVersion.binaryMapped {
+  case "2.9.3" => "2.9.2"
+  case _ => "2.10"
+}
 
 libraryDependencies += "commons-lang" % "commons-lang" % "2.4"
 
 libraryDependencies += "com.joestelmach" % "natty" % "0.7"
 
-libraryDependencies += "io.backchat.jerkson" % "jerkson_2.9.2" % "0.7.0"
+// Jerkson is abandoned and there is no 0.7.0 version built for Scala 2.10 from io.backchat
+// com.cloudphysics has a Scala 2.10 version with a different versioning scheme
+// Thus the apparent decrease in version number
+libraryDependencies <+= scalaVersion {
+  case "2.9.3" => "io.backchat.jerkson" % "jerkson_2.9.2" % "0.7.0"
+  case _ => "com.cloudphysics" % "jerkson_2.10" % "0.6.3"
+}
 
 libraryDependencies += "com.google.guava" % "guava" % "13.0.1"
 
