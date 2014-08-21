@@ -12,9 +12,10 @@ object NNMF extends Serializable {
 
   // based on http://research.microsoft.com/pubs/119077/dnmf.pdf
 
-  // input:
-  // A: a sparse matrix in the form ('row, 'col, 'val), with tuples of type (R, C, Double).
-  // k: the dimension of the factorization.
+  /* input:
+   * A: a sparse matrix in the form ('row, 'col, 'val), with tuples of type (R, C, Double).
+   * k: the dimension of the factorization.
+   */
   def initGaussian(A : Pipe, k : Int, reducers : Int = 500) : (Pipe, Pipe) = {
     val H0 = A.groupBy('row){_.size('count).reducers(reducers)}
       .map(() -> 'vec){_ : Unit => MatrixUtils.createRealVector((0 until k).map{i => math.random}.toArray)}
@@ -25,11 +26,12 @@ object NNMF extends Serializable {
     (H0, W0)
   }
 
-  // input:
-  // A: a sparse matrix in the form ('row, 'col, 'val), with tuples of type (R, C, Double).
-  // H: a dense matrix of ('row, 'vec)
-  // W: a dense matrix of ('col, 'vec)
-  // With W,H from initGaussian or a previous iteration.
+  /* input:
+   * A: a sparse matrix in the form ('row, 'col, 'val), with tuples of type (R, C, Double).
+   * H: a dense matrix of ('row, 'vec)
+   * W: a dense matrix of ('col, 'vec)
+   * With W,H from initGaussian or a previous iteration.
+   */
   def updateGaussian(A : Pipe, H : Pipe, W : Pipe, reducers : Int = 500) : (Pipe, Pipe) = {
 
     // Note that row and column vectors are both represented as a RealVector which doesnt have an orientation.
