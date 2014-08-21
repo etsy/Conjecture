@@ -1,6 +1,6 @@
 package com.etsy.scalding.jobs.conjecture
 
-import com.etsy.scalding.conjecture.NNMF
+import com.etsy.conjecture.scalding.NNMF
 import com.twitter.scalding.{Args, Job, Tsv, SequenceFile}
 import org.apache.commons.math3.linear.RealVector
 
