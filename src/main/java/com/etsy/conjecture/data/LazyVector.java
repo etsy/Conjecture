@@ -33,7 +33,7 @@ public class LazyVector extends StringKeyedVector implements Serializable,
      * The function used to update the parameters during the lazy update
      */
     public static interface UpdateFunction extends Serializable {
-        public double update(double param, long startIteration,
+        public double lazyUpdate(String key, double param, long startIteration,
                 long endIteration);
     }
 
@@ -41,7 +41,7 @@ public class LazyVector extends StringKeyedVector implements Serializable,
         this(new UpdateFunction() {
             private static final long serialVersionUID = 1740773207106961880L;
 
-            public double update(double p, long a, long b) {
+            public double lazyUpdate(String key, double p, long a, long b) {
                 return p;
             }
         });
@@ -93,7 +93,7 @@ public class LazyVector extends StringKeyedVector implements Serializable,
             long startIter = (long)iterations.getPrimitive(it.key()); // defaults
                                                                       // to 0.0
             if (startIter < iteration) {
-                it.setValue(updater.update(it.value(), startIter, iteration));
+                it.setValue(updater.lazyUpdate(it.key().toString(), it.value(), startIter, iteration));
                 iterations.putPrimitive(it.key(), (double)iteration);
             }
         }
@@ -109,7 +109,7 @@ public class LazyVector extends StringKeyedVector implements Serializable,
             long oldIteration = (long)iterations.getPrimitive(key);
             double initial = vector.getPrimitive(key);
             if (oldIteration < iteration) {
-                double updated = updater.update(initial, oldIteration,
+                double updated = updater.lazyUpdate(key.toString(), initial, oldIteration,
                         iteration);
                 if (Utilities.floatingPointEquals(updated, 0.0d)) {
                     vector.removePrimitive(key);

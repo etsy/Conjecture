@@ -13,38 +13,30 @@ import java.util.Map;
 import com.etsy.conjecture.Utilities;
 import com.etsy.conjecture.data.MulticlassLabel;
 import com.etsy.conjecture.data.LabeledInstance;
+import com.etsy.conjecture.data.BinaryLabeledInstance;
+import com.etsy.conjecture.data.MulticlassLabeledInstance;
+import com.etsy.conjecture.data.MulticlassPrediction;
 import com.etsy.conjecture.data.LazyVector;
 import com.etsy.conjecture.data.StringKeyedVector;
+import com.etsy.conjecture.data.RealValuedLabel;
+import com.etsy.conjecture.data.BinaryLabel;
 
-public abstract class UpdateableMulticlassLinearModel implements
+public class UpdateableMulticlassLinearModel implements
     UpdateableModel<MulticlassLabel, UpdateableMulticlassLinearModel>,
     Comparable<UpdateableMulticlassLinearModel>, Serializable {
 
     private static final long serialVersionUID = 8549108867384062857L;
-    protected final String modelType;
-
-    // parameters for gradient truncation
-    // for more info, see:
-    // http://jmlr.csail.mit.edu/papers/volume10/langford09a/langford09a.pdf
-    private int period = 0;
-    private double truncationUpdate = 0.1;
-    private double truncationThreshold = 0.0;
+    protected String modelType;
+    private Map<String, UpdateableLinearModel<BinaryLabel>> categoryModels;
 
     private String argString = "NOT SET";
 
     protected long epoch;
 
-    protected Map<String, LazyVector> param = new HashMap<String, LazyVector>();
+    protected Map<String, UpdateableLinearModel<BinaryLabel>> param = new HashMap<String, UpdateableLinearModel<BinaryLabel>>();
 
-    protected LearningRateComputation rateComputer = new LearningRateComputation();
-    protected RegularizationUpdater regularizer = new RegularizationUpdater(
-            rateComputer);
-
-    protected UpdateableMulticlassLinearModel(String[] categories) {
-        for (String category : categories) {
-            this.param.put(category, new LazyVector(100, regularizer));
-        }
-
+    public UpdateableMulticlassLinearModel(Map<String, UpdateableLinearModel<BinaryLabel>> categoryModels) {
+        this.categoryModels = categoryModels;
         this.epoch = 0;
         this.modelType = this.getModelType();
     }
@@ -57,9 +49,13 @@ public abstract class UpdateableMulticlassLinearModel implements
         return argString;
     }
 
-    public abstract void updateRule(LabeledInstance<MulticlassLabel> instance);
+    public void setModelType(String modelType) {
+        this.modelType = modelType;
+    }
 
-    protected abstract String getModelType();
+    public String getModelType() {
+        return modelType;
+    }
 
     public Iterator<Map.Entry<String, Double>> decompose() {
         throw new UnsupportedOperationException("not done yet");
@@ -71,67 +67,67 @@ public abstract class UpdateableMulticlassLinearModel implements
 
     public void reScale(double scale) {
         for (String cat : param.keySet()) {
-            param.get(cat).mul(scale);
+            param.get(cat).param.mul(scale);
         }
     }
 
     public void setFreezeFeatureSet(boolean freeze) {
-        for (Map.Entry<String, LazyVector> e : param.entrySet()) {
-            e.getValue().setFreezeKeySet(freeze);
+        for (Map.Entry<String, UpdateableLinearModel<BinaryLabel>> e : param.entrySet()) {
+            e.getValue().param.setFreezeKeySet(freeze);
         }
     }
 
+    /**
+     *  Minibatch gradient update
+     */
     public void update(Collection<LabeledInstance<MulticlassLabel>> instances) {
         for (LabeledInstance<MulticlassLabel> instance : instances) {
             update(instance);
         }
     }
 
+    /**
+     *  Single gradient update.
+     */
     public void update(LabeledInstance<MulticlassLabel> instance) {
-        if (epoch > 0) {
-            for (LazyVector vec : param.values()) {
-                vec.incrementIteration();
-            }
-        }
-
-        updateRule(instance);
-
-        if (period > 0 && epoch > 0 && epoch % period == 0) {
-            applyTruncation(instance.getVector());
+        for (Map.Entry<String, UpdateableLinearModel<BinaryLabel>> e : param.entrySet()) {
+            String category = e.getKey();
+            UpdateableLinearModel<BinaryLabel> model = e.getValue();
+            double label = e.getKey().equals(instance.getLabel().getLabel()) ? 1.0 : 0.0;
+            BinaryLabeledInstance blInstance = new BinaryLabeledInstance(label, instance.getVector());
+            model.update(blInstance);
         }
         epoch++;
     }
 
+    @Override
+    public MulticlassPrediction predict(StringKeyedVector instance) {
+        Map<String, Double> scores = new HashMap<String, Double>();
+        double normalization = 0;
+
+        for (Map.Entry<String, UpdateableLinearModel<BinaryLabel>> e : param.entrySet()) {
+            double prediction = ((RealValuedLabel)e.getValue().predict(instance)).getValue();
+            scores.put(e.getKey(), prediction);
+            normalization += prediction;
+        }
+
+        for (Map.Entry<String, Double> e : scores.entrySet()) {
+            scores.put(e.getKey(), e.getValue() / normalization);
+        }
+
+        return new MulticlassPrediction(scores);
+    }
+
     public void merge(UpdateableMulticlassLinearModel model, double scale) {
         for (String cat : param.keySet()) {
-            param.get(cat).addScaled(model.param.get(cat), scale);
+            param.get(cat).param.addScaled(model.param.get(cat).param, scale);
         }
         epoch += model.epoch;
     }
 
-    public double computeLearningRate() {
-        return rateComputer.computeLearningRate(epoch);
-    }
-
-    private void applyTruncation(StringKeyedVector instance) {
-        final double update = computeLearningRate() * truncationUpdate;
-        final double threshold = truncationThreshold;
-
-        TDoubleFunction truncFn = new TDoubleFunction() {
-            public double execute(double parameter) {
-                if (parameter > 0 && parameter < threshold) {
-                    return Math.max(0, parameter - update);
-                } else if (parameter < 0 && parameter > -threshold) {
-                    return Math.min(0, parameter + update);
-                } else {
-                    return parameter;
-                }
-            }
-        };
-
-        for(LazyVector vec : param.values()) {
-            vec.transformValues(truncFn);
-            vec.removeZeroCoordinates();
+    public void teardown() {
+        for (Map.Entry<String, UpdateableLinearModel<BinaryLabel>> e : param.entrySet()) {
+            e.getValue().teardown();
         }
     }
 
@@ -143,68 +139,6 @@ public abstract class UpdateableMulticlassLinearModel implements
         epoch = e;
     }
 
-    public UpdateableMulticlassLinearModel setInitialLearningRate(double rate) {
-        checkArgument(rate > 0, "period must be positive, given: %s", rate);
-        rateComputer.initialLearningRate = rate;
-        return this;
-    }
-
-    public UpdateableMulticlassLinearModel setUseExponentialLearningRate(boolean b) {
-        rateComputer.useExponentialLearningRate = b;
-        return this;
-    }
-
-    public UpdateableMulticlassLinearModel setExponentialLearningRateBase(double base) {
-        checkArgument(base > 0,
-                "exponential learning rate base must be positive, given: %f",
-                base);
-        checkArgument(
-                base <= 1.0,
-                "exponential learning rate base must be at most 1.0, given: %f",
-                base);
-        rateComputer.exponentialLearningRateBase = base;
-        return this;
-    }
-
-    public UpdateableMulticlassLinearModel setExamplesPerEpoch(double examples) {
-        checkArgument(examples > 0,
-                "examples per epoch musht be positive, given %f", examples);
-        rateComputer.examplesPerEpoch = examples;
-        return this;
-    }
-
-    public UpdateableMulticlassLinearModel setTruncationPeriod(int period) {
-        checkArgument(period >= 0, "period must be non-negative, given: %s",
-                period);
-        this.period = period;
-        return this;
-    }
-
-    public UpdateableMulticlassLinearModel setTruncationThreshold(double threshold) {
-        checkArgument(threshold >= 0, "update must be non-negative, given: %s",
-                threshold);
-        this.truncationThreshold = threshold;
-        return this;
-    }
-
-    public UpdateableMulticlassLinearModel setTruncationUpdate(double update) {
-        checkArgument(update >= 0, "update must be non-negative, given: %s",
-                update);
-        this.truncationUpdate = update;
-        return this;
-    }
-
-    public UpdateableMulticlassLinearModel setLaplaceRegularizationWeight(double weight) {
-        regularizer.laplace = weight;
-        return this;
-    }
-
-    public UpdateableMulticlassLinearModel setGaussianRegularizationWeight(
-            double weight) {
-        regularizer.gaussian = weight;
-        return this;
-    }
-
     // what to do here?
     @Override
     public int compareTo(UpdateableMulticlassLinearModel inputModel) {
@@ -212,8 +146,8 @@ public abstract class UpdateableMulticlassLinearModel implements
     }
 
     public void thresholdParameters(double t) {
-        for (LazyVector vec : param.values()) {
-            for (Iterator<Map.Entry<String, Double>> it = vec.iterator(); it
+        for (UpdateableLinearModel<BinaryLabel> m : param.values()) {
+            for (Iterator<Map.Entry<String, Double>> it = m.param.iterator(); it
                      .hasNext();) {
                 if (Math.abs(it.next().getValue()) < t) {
                     it.remove();

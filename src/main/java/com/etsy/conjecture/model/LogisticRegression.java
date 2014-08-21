@@ -5,28 +5,41 @@ import com.etsy.conjecture.data.BinaryLabel;
 import com.etsy.conjecture.data.LabeledInstance;
 import com.etsy.conjecture.data.StringKeyedVector;
 
+/**
+ *  Logistic regression loss for binary classification with y in {-1, 1}.
+ */
 public class LogisticRegression extends UpdateableLinearModel<BinaryLabel> {
 
     private static final long serialVersionUID = 1L;
 
-    public LogisticRegression() {
-        super();
+    public LogisticRegression(SGDOptimizer optimizer) {
+        super(optimizer);
     }
 
-    public LogisticRegression(StringKeyedVector param) {
-        super(param);
+    public LogisticRegression(StringKeyedVector param, SGDOptimizer optimizer) {
+        super(param, optimizer);
     }
 
-    public BinaryLabel predict(StringKeyedVector instance, double bias) {
-        return new BinaryLabel(Utilities.logistic(instance.dot(param) + bias));
+    @Override
+    public BinaryLabel predict(StringKeyedVector instance) {
+        return new BinaryLabel(Utilities.logistic(instance.dot(param)));
     }
 
-    public void updateRule(LabeledInstance<BinaryLabel> instance, double bias) {
-        double hypothesis = Utilities.logistic(instance.getVector().dot(param)
-                + bias);
-        double label = instance.getLabel().getValue();
-        param.addScaled(instance.getVector(), -computeLearningRate()
-                * (hypothesis - label));
+    @Override
+    public double loss(LabeledInstance<BinaryLabel> instance) {
+        double inner = instance.getVector().dot(param);
+        double label = instance.getLabel().getAsPlusMinus();
+        return Math.log(1.0 + Math.exp(-label * inner));
+    }
+
+    @Override
+    public StringKeyedVector getGradients(LabeledInstance<BinaryLabel> instance) {
+        StringKeyedVector gradients = instance.getVector();
+        double label = instance.getLabel().getAsPlusMinus();
+        double inner = instance.getVector().dot(param);
+        double gradient = -label * Utilities.logistic(-label * inner);
+        gradients.mul(gradient);
+        return gradients;
     }
 
     protected String getModelType() {

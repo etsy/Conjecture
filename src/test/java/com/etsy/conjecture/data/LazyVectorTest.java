@@ -26,8 +26,7 @@ public class LazyVectorTest {
     final static LazyVector.UpdateFunction uf = new LazyVector.UpdateFunction() {
 
         private static final long serialVersionUID = 1019666879466468375L;
-
-        public double update(double p, long a, long b) {
+        public double lazyUpdate(String k, double p, long a, long b) {
             return p * Math.pow(0.9, b - a);
         }
     };

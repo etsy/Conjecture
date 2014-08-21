@@ -9,26 +9,33 @@ public class LeastSquaresRegressionModel extends
 
     private static final long serialVersionUID = 1L;
 
-    public LeastSquaresRegressionModel() {
-        super();
+    public LeastSquaresRegressionModel(SGDOptimizer optimizer) {
+        super(optimizer);
     }
 
-    public LeastSquaresRegressionModel(StringKeyedVector param) {
-        super(param);
-    }
-
-    @Override
-    public RealValuedLabel predict(StringKeyedVector instance, double bias) {
-        return new RealValuedLabel(param.dot(instance) + bias);
+    public LeastSquaresRegressionModel(StringKeyedVector param, SGDOptimizer optimizer) {
+        super(param, optimizer);
     }
 
     @Override
-    public void updateRule(LabeledInstance<RealValuedLabel> instance,
-            double bias) {
-        double prediction = param.dot(instance.getVector()) + bias;
+    public RealValuedLabel predict(StringKeyedVector instance) {
+        return new RealValuedLabel(param.dot(instance));
+    }
+
+    @Override
+    public double loss (LabeledInstance<RealValuedLabel> instance) {
         double label = instance.getLabel().getValue();
-        param.addScaled(instance.getVector(), 2 * computeLearningRate()
-                * (prediction - label));
+        double hypothesis = param.dot(instance.getVector());
+        return 0.5 * (hypothesis - label) * (hypothesis - label);
+    }
+
+    @Override
+    public StringKeyedVector getGradients(LabeledInstance<RealValuedLabel> instance) {
+        StringKeyedVector gradients = instance.getVector();
+        double hypothesis = param.dot(instance.getVector());
+        double label = instance.getLabel().getValue();
+        gradients.mul((2 * (hypothesis-label)));
+        return gradients;
     }
 
     @Override

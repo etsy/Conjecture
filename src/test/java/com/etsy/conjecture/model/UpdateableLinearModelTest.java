@@ -10,6 +10,7 @@ import com.etsy.conjecture.data.BinaryLabeledInstance;
 public class UpdateableLinearModelTest {
 
     final double eps = 0.000001;
+    final SGDOptimizer optimizer = new ElasticNetOptimizer();
 
     BinaryLabeledInstance getPositiveInstance() {
         BinaryLabeledInstance bli = new BinaryLabeledInstance(1.0);
@@ -27,9 +28,9 @@ public class UpdateableLinearModelTest {
 
     @Test
     public void testLogisticRegressionBasic() {
-        LogisticRegression slr = new LogisticRegression();
+        LogisticRegression slr = new LogisticRegression(optimizer);
         // perform one update and check parameter values.
-        double eta = slr.computeLearningRate();
+        double eta = slr.optimizer.getDecreasingLearningRate(slr.epoch);
         slr.update(getPositiveInstance());
         assertEquals(eta * 0.5, slr.getParam().getCoordinate("foo"), eps);
         assertEquals(eta * 1.0, slr.getParam().getCoordinate("bar"), eps);
@@ -42,14 +43,14 @@ public class UpdateableLinearModelTest {
 
     @Test
     public void testLogisticRegressionLaplaceRegularization() {
-        LogisticRegression slr = new LogisticRegression();
-        slr.setLaplaceRegularizationWeight(0.1);
+        SGDOptimizer laplaceOptimizer = optimizer.setLaplaceRegularizationWeight(0.1);
+        LogisticRegression slr = new LogisticRegression(laplaceOptimizer);
         // perform one update and check parameter values.
-        double eta = slr.computeLearningRate();
+        double eta = slr.optimizer.getDecreasingLearningRate(slr.epoch);
         slr.update(getPositiveInstance());
         assertEquals(eta * 0.5, slr.getParam().getCoordinate("foo"), eps);
         assertEquals(eta * 1.0, slr.getParam().getCoordinate("bar"), eps);
-        double eta2 = slr.computeLearningRate();
+        double eta2 = slr.optimizer.getDecreasingLearningRate(slr.epoch);
         slr.update(getNegativeInstance());
         assertEquals(eta * 1.0 - eta2 * 0.1, slr.getParam()
                 .getCoordinate("bar"), eps);
@@ -63,14 +64,14 @@ public class UpdateableLinearModelTest {
 
     @Test
     public void testLogisticRegressionGaussianRegularization() {
-        LogisticRegression slr = new LogisticRegression();
-        slr.setGaussianRegularizationWeight(0.2);
+        SGDOptimizer gaussianOptimizer = optimizer.setGaussianRegularizationWeight(0.2);
+        LogisticRegression slr = new LogisticRegression(gaussianOptimizer);
         // perform one update and check parameter values.
-        double eta = slr.computeLearningRate();
+        double eta = slr.optimizer.getDecreasingLearningRate(slr.epoch);
         slr.update(getPositiveInstance());
         assertEquals(eta * 0.5, slr.getParam().getCoordinate("foo"), eps);
         assertEquals(eta * 1.0, slr.getParam().getCoordinate("bar"), eps);
-        double eta2 = slr.computeLearningRate();
+        double eta2 = slr.optimizer.getDecreasingLearningRate(slr.epoch);
         slr.update(getNegativeInstance());
         assertEquals(eta * 1.0 * (1.0 - eta2 * 0.2), slr.getParam()
                 .getCoordinate("bar"), eps);
@@ -78,9 +79,9 @@ public class UpdateableLinearModelTest {
 
     @Test
     public void testPerceptronBasic() {
-        Perceptron p = new Perceptron();
+        Hinge p = new Hinge(optimizer).setThreshold(0.0);
         // perform one update and check parameter values.
-        double eta = p.computeLearningRate();
+        double eta = p.optimizer.getDecreasingLearningRate(p.epoch);
         p.update(getPositiveInstance());
         assertEquals(eta * 1.0, p.getParam().getCoordinate("foo"), eps);
         assertEquals(eta * 2.0, p.getParam().getCoordinate("bar"), eps);
