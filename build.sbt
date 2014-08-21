@@ -1,6 +1,7 @@
 import sbt._
 import AssemblyKeys._
 import aether.Aether._
+import com.gramercysoftware.multipublish.MultiPublish._
 
 name := "conjecture"
 
@@ -88,11 +89,26 @@ seq(assemblySettings: _*)
 publishTo <<= version { v : String =>
   val nexus = "https://oss.sonatype.org/"
   if (v.trim.endsWith("SNAPSHOT")) {
-    Some("snapshots" at nexus + "content/repositories/snapshots")
+        Some("snapshots" at nexus + "content/repositories/snapshots")
   } else {
-    Some("releases"  at nexus + "service/local/staging/deploy/maven2")
+        Some("releases"  at nexus + "service/local/staging/deploy/maven2")
   }
 }
+
+repositoryList <<= version { v : String =>
+  val archivaURL = "http://ivy.etsycorp.com/repository"
+  if (v.trim.endsWith("SNAPSHOT")) {
+    Seq(
+      "snapshots" at (archivaURL + "/snapshots")
+    )
+  } else {
+    Seq(
+      "releases"  at (archivaURL + "/internal")
+    )
+  }
+}
+
+publish <<= multiPublish
 
 publishMavenStyle := true
 
