@@ -96,7 +96,6 @@ publishTo <<= version { v : String =>
 }
 
 repositoryList <<= version { v : String =>
-  val nexus = "https://oss.sonatype.org/"
   val archivaURL = "http://ivy.etsycorp.com/repository"
   if (v.trim.endsWith("SNAPSHOT")) {
     Seq(
