@@ -5,6 +5,7 @@ import com.etsy.conjecture.data.StringKeyedVector;
 import static com.google.common.base.Preconditions.checkArgument;
 import com.etsy.conjecture.Utilities;
 import com.etsy.conjecture.data.LabeledInstance;
+import com.etsy.conjecture.data.Label;
 import java.util.Map;
 import java.util.Iterator;
 
@@ -12,7 +13,7 @@ import java.util.Iterator;
  *  Implements  FTRL-Proximal online learning as described 
  *  here: http://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41159.pdf
  */
-public class FTRLOptimizer extends SGDOptimizer {
+public class FTRLOptimizer<L extends Label> extends SGDOptimizer<L> {
 
     private double alpha;
     private double beta;
@@ -20,7 +21,7 @@ public class FTRLOptimizer extends SGDOptimizer {
     private StringKeyedVector n = new StringKeyedVector();
 
     @Override
-    public StringKeyedVector getUpdate(LabeledInstance instance) {
+    public StringKeyedVector getUpdate(LabeledInstance<L> instance) {
         FTRLRegularization(instance);
         StringKeyedVector gradients = model.getGradients(instance);
         Iterator it = gradients.iterator();
@@ -53,12 +54,12 @@ public class FTRLOptimizer extends SGDOptimizer {
     }
 
 
-    public void FTRLRegularization(LabeledInstance instance) {
-        Iterator it = instance.getVector().iterator();
+    public void FTRLRegularization(LabeledInstance<L> instance) {
+        Iterator<Map.Entry<String,Double>> it = instance.getVector().iterator();
         while (it.hasNext()) {
             Map.Entry<String,Double> pairs = (Map.Entry)it.next();
             String feature = pairs.getKey();
-            double value = pairs.getValue();
+            Double value = pairs.getValue();
             double regularizedWeight = getRegularizedWeight(feature);
             model.param.setCoordinate(feature, regularizedWeight);
        }
@@ -92,13 +93,13 @@ public class FTRLOptimizer extends SGDOptimizer {
         return param;
     }
 
-    public FTRLOptimizer setAlpha(double alpha) {
+    public FTRLOptimizer<L> setAlpha(double alpha) {
         checkArgument(alpha > 0, "alpha must be greater than 0. Given: %s", alpha);
         this.alpha = alpha;
         return this;
     }
 
-    public FTRLOptimizer setBeta(double beta) {
+    public FTRLOptimizer<L> setBeta(double beta) {
         checkArgument(beta > 0, "beta must be greater than 0. Given: %s", beta);
         this.beta = beta;
         return this;

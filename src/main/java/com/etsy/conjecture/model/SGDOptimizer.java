@@ -41,12 +41,12 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
      */
     public StringKeyedVector getUpdates(Collection<LabeledInstance<L>> minibatch) {
         StringKeyedVector updateVec = new StringKeyedVector();
-        for (LabeledInstance instance : minibatch) {
+        for (LabeledInstance<L> instance : minibatch) {
             updateVec.add(getUpdate(instance)); // accumulate gradient
             model.truncate(instance);
             model.epoch++;
         }
-        updateVec.mul(1/minibatch.size()); // do a single update, scaling weights by the
+        updateVec.mul(1.0/minibatch.size()); // do a single update, scaling weights by the
                                            // average gradient over the minibatch
         return updateVec;
     }
@@ -60,7 +60,7 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
     public abstract StringKeyedVector getUpdate(LabeledInstance<L> instance);
 
     public void teardown() {
-        
+
     }
 
     /**
@@ -114,25 +114,25 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
         }
     }
 
-    public SGDOptimizer setInitialLearningRate(double rate) {
+    public SGDOptimizer<L> setInitialLearningRate(double rate) {
         checkArgument(rate > 0, "Initial learning rate must be greater than 0. Given: %s", rate);
         this.initialLearningRate = rate;
         return this;
     }
 
-    public SGDOptimizer setExamplesPerEpoch(double examples) {
+    public SGDOptimizer<L> setExamplesPerEpoch(double examples) {
         checkArgument(examples > 0,
                 "examples per epoch must be positive, given %f", examples);
         this.examplesPerEpoch = examples;
         return this;
     }
 
-    public SGDOptimizer setUseExponentialLearningRate(boolean useExponentialLearningRate) {
+    public SGDOptimizer<L> setUseExponentialLearningRate(boolean useExponentialLearningRate) {
         this.useExponentialLearningRate = useExponentialLearningRate;
         return this;
     }
 
-    public SGDOptimizer setExponentialLearningRateBase(double base) {
+    public SGDOptimizer<L> setExponentialLearningRateBase(double base) {
         checkArgument(base > 0,
                 "exponential learning rate base must be positive, given: %f",
                 base);
@@ -144,7 +144,7 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
         return this;
     }
 
-    public SGDOptimizer setGaussianRegularizationWeight(double gaussian) {
+    public SGDOptimizer<L> setGaussianRegularizationWeight(double gaussian) {
         checkArgument(gaussian > 0,
                 "gaussian regularization weight must be positive, given: %f",
                 gaussian);
@@ -152,7 +152,7 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
         return this;
     }
 
-    public SGDOptimizer setLaplaceRegularizationWeight(double laplace) {
+    public SGDOptimizer<L> setLaplaceRegularizationWeight(double laplace) {
         checkArgument(laplace > 0,
                 "laplace regularization weight must be positive, given: %f",
                 laplace);
