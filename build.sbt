@@ -5,7 +5,7 @@ import com.gramercysoftware.multipublish.MultiPublish._
 
 name := "conjecture"
 
-version := "0.1.2-SNAPSHOT"
+version := "0.1.3-TEST-SNAPSHOT"
 
 organization := "com.etsy"
 
@@ -87,28 +87,13 @@ publishArtifact in Test := false
 seq(assemblySettings: _*)
 
 publishTo <<= version { v : String =>
-  val nexus = "https://oss.sonatype.org/"
-  if (v.trim.endsWith("SNAPSHOT")) {
-        Some("snapshots" at nexus + "content/repositories/snapshots")
-  } else {
-        Some("releases"  at nexus + "service/local/staging/deploy/maven2")
-  }
-}
-
-repositoryList <<= version { v : String =>
   val archivaURL = "http://ivy.etsycorp.com/repository"
   if (v.trim.endsWith("SNAPSHOT")) {
-    Seq(
-      "snapshots" at (archivaURL + "/snapshots")
-    )
+    Some("publish-snapshots" at (archivaURL + "/snapshots"))
   } else {
-    Seq(
-      "releases"  at (archivaURL + "/internal")
-    )
+    Some("publish-releases"  at (archivaURL + "/internal"))
   }
 }
-
-publish <<= multiPublish
 
 publishMavenStyle := true
 
