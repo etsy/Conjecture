@@ -2,6 +2,7 @@ package com.etsy.conjecture.model;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import com.etsy.conjecture.data.StringKeyedVector;
 
 import org.junit.Test;
 
@@ -90,6 +91,44 @@ public class UpdateableLinearModelTest {
         p.update(getNegativeInstance());
         assertTrue(p.predict(getPositiveInstance().getVector()).getValue() > 0.5);
         assertTrue(p.predict(getNegativeInstance().getVector()).getValue() < 0.5);
+    }
+
+    public void testInstanceNotModified(UpdateableLinearModel model) {
+        BinaryLabeledInstance instance = getPositiveInstance();
+        StringKeyedVector instanceCopy = instance.getVector().copy();
+        model.update(instance);
+        assertEquals(instance.getVector().getCoordinate("foo"), instanceCopy.getCoordinate("foo"), 0.0);
+        assertEquals(instance.getVector().getCoordinate("bar"), instanceCopy.getCoordinate("bar"), 0.0);
+    }
+
+    @Test
+    public void testInstanceNotModifiedByOptimizer() {
+        ElasticNetOptimizer eOptimizer = new ElasticNetOptimizer();
+        LogisticRegression eModel = new LogisticRegression(eOptimizer);
+        testInstanceNotModified(eModel);
+
+        FTRLOptimizer ftrlOptimizer = new FTRLOptimizer();
+        LogisticRegression fModel = new LogisticRegression(ftrlOptimizer);
+        testInstanceNotModified(fModel);
+
+        AdagradOptimizer adagradOptimizer = new AdagradOptimizer();
+        LogisticRegression aModel = new LogisticRegression(adagradOptimizer);
+        testInstanceNotModified(aModel);
+
+        MIRA mModel = new MIRA();
+        testInstanceNotModified(mModel);
+    }
+
+    @Test
+    public void testInstanceNotModifiedByModel() {
+        LogisticRegression lrModel = new LogisticRegression(optimizer);
+        testInstanceNotModified(lrModel);
+
+        LeastSquaresRegressionModel lsModel = new LeastSquaresRegressionModel(optimizer);
+        testInstanceNotModified(lsModel);
+
+        Hinge hModel = new Hinge(optimizer);
+        testInstanceNotModified(hModel);
     }
 
 }

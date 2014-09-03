@@ -289,7 +289,7 @@ public class StringKeyedVector implements Serializable,
                 max = v;
             }
         }
-        return max; 
+        return max;
     }
 
     /**
@@ -302,5 +302,24 @@ public class StringKeyedVector implements Serializable,
     public String toString() {
         Gson gson = new Gson();
         return gson.toJson(vector);
+    }
+
+    /**
+     * performs a deep copy of a stringkeyedvector
+     *
+     */
+    public StringKeyedVector copy() {
+        StringKeyedVector out = new StringKeyedVector(this.size());
+        Iterator<Map.Entry<String, Double>> it = this.iterator();
+
+        while (it.hasNext()) {
+            Map.Entry<String, Double> entry = it.next();
+            String key = entry.getKey();
+            Double value = entry.getValue();
+
+            out.setCoordinate(key, value);
+        }
+
+        return out;
     }
 }

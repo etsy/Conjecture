@@ -33,7 +33,7 @@ public class MIRA extends UpdateableLinearModel<BinaryLabel> {
 
     @Override
     public StringKeyedVector getGradients(LabeledInstance<BinaryLabel> instance) {
-        StringKeyedVector gradients = instance.getVector();
+        StringKeyedVector gradients = instance.getVector().copy();
         double label = instance.getLabel().getAsPlusMinus();
         double prediction = param.dot(instance.getVector());
         double loss = Math.max(0, 1d - label * prediction);
