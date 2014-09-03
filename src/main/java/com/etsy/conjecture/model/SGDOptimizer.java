@@ -23,7 +23,7 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
     double laplace = 0.0;
     double gaussian = 0.0;
     double initialLearningRate = 0.01;
-    UpdateableLinearModel model;
+    transient UpdateableLinearModel model;
 
     double examplesPerEpoch = 10000;
     boolean useExponentialLearningRate = false;
