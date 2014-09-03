@@ -44,7 +44,7 @@ public class Hinge extends UpdateableLinearModel<BinaryLabel> {
 
     @Override
     public StringKeyedVector getGradients(LabeledInstance<BinaryLabel> instance) {
-        StringKeyedVector gradients = instance.getVector();
+        StringKeyedVector gradients = instance.getVector().copy();
         double hypothesis = (param.dot(instance.getVector()));
         double label = instance.getLabel().getAsPlusMinus();
         if (hypothesis * label <= this.threshold) {

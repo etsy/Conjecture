@@ -31,7 +31,7 @@ public class LeastSquaresRegressionModel extends
 
     @Override
     public StringKeyedVector getGradients(LabeledInstance<RealValuedLabel> instance) {
-        StringKeyedVector gradients = instance.getVector();
+        StringKeyedVector gradients = instance.getVector().copy();
         double hypothesis = param.dot(instance.getVector());
         double label = instance.getLabel().getValue();
         gradients.mul((2 * (hypothesis-label)));

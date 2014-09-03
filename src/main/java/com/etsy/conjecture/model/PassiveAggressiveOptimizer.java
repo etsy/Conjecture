@@ -30,7 +30,7 @@ public class PassiveAggressiveOptimizer extends SGDOptimizer<RealValuedLabel> {
             /** Regression **/
             update = update * -1;
         }
-        StringKeyedVector updateVec = instance.getVector();
+        StringKeyedVector updateVec = instance.getVector().copy();
         updateVec.mul(update);
         return updateVec;
     }
