@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Iterator;
 
 /**
- *  Implements  FTRL-Proximal online learning as described 
+ *  Implements  FTRL-Proximal online learning as described
  *  here: http://static.googleusercontent.com/media/research.google.com/en/us/pubs/archive/41159.pdf
  */
 public class FTRLOptimizer extends SGDOptimizer {
@@ -75,7 +75,7 @@ public class FTRLOptimizer extends SGDOptimizer {
                 return 0.0d;
             } else {
                 double n_i = n.getCoordinate(feature);
-                double w_i = -(((beta + Math.sqrt(n_i))/alpha) + gaussian) * (z_i - Math.signum(z_i) * laplace);
+                double w_i = -1.0/(((beta + Math.sqrt(n_i))/alpha) + gaussian) * (z_i - Math.signum(z_i) * laplace);
                 return w_i;
             }
         } else {
