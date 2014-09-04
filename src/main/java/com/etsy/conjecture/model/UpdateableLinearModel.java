@@ -51,7 +51,6 @@ public abstract class UpdateableLinearModel<L extends Label> implements
 
     protected UpdateableLinearModel(SGDOptimizer optimizer) {
         this.optimizer = optimizer;
-        optimizer.model = this;
         this.param = new LazyVector(100, optimizer);
         epoch = 0;
         modelType = getModelType();
@@ -74,6 +73,7 @@ public abstract class UpdateableLinearModel<L extends Label> implements
      *  Minibatch gradient update
      */
     public void update(Collection<LabeledInstance<L>> instances) {
+        optimizer.model = this; // avoid serialization stackoverflow
         if (epoch > 0) {
             param.incrementIteration();
         }
@@ -85,11 +85,12 @@ public abstract class UpdateableLinearModel<L extends Label> implements
      *  Single gradient update
      */
     public void update(LabeledInstance<L> instance) {
+        optimizer.model = this; // avoid serialization stackoverflow
         if (epoch > 0) {
             param.incrementIteration();
         }
         StringKeyedVector update = optimizer.getUpdate(instance);
-        param.addScaled(update,-1.0);
+        param.add(update);
         truncate(instance);
         epoch++;
     }

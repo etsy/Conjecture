@@ -32,9 +32,9 @@ public class Hinge extends UpdateableLinearModel<BinaryLabel> {
 
     @Override
     public double loss(LabeledInstance<BinaryLabel> instance) {
-        double hypothesis = Utilities.logistic(param.dot(instance.getVector()));
+        double inner = param.dot(instance.getVector());
         double label = instance.getLabel().getAsPlusMinus();
-        double z = hypothesis * label;
+        double z = inner * label;
         if (z <= this.threshold) {
             return this.threshold - z;
         } else {
@@ -45,9 +45,10 @@ public class Hinge extends UpdateableLinearModel<BinaryLabel> {
     @Override
     public StringKeyedVector getGradients(LabeledInstance<BinaryLabel> instance) {
         StringKeyedVector gradients = instance.getVector().copy();
-        double hypothesis = (param.dot(instance.getVector()));
+        double inner = param.dot(instance.getVector());
         double label = instance.getLabel().getAsPlusMinus();
-        if (hypothesis * label <= this.threshold) {
+        double z = inner * label;
+        if (z <= this.threshold) {
             gradients.mul(-label);
             return gradients;
         } else {

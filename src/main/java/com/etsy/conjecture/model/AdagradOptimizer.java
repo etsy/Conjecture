@@ -15,20 +15,21 @@ import java.util.Iterator;
 public class AdagradOptimizer extends SGDOptimizer {
 
     private StringKeyedVector unnormalizedGradients = new StringKeyedVector();
-    private StringKeyedVector gradients = new StringKeyedVector();
+    private StringKeyedVector summedGradients = new StringKeyedVector();
 
     @Override
     public StringKeyedVector getUpdate(LabeledInstance instance) {
         StringKeyedVector gradients = model.getGradients(instance);
-        Iterator it = gradients.iterator();
+        StringKeyedVector updateVec = new StringKeyedVector();
+        Iterator<Map.Entry<String, Double>> it = gradients.iterator();
         while (it.hasNext()) {
             Map.Entry<String,Double> pairs = (Map.Entry)it.next();
             String feature = pairs.getKey();
             double gradient = pairs.getValue();
             double featureLearningRate = updateAndGetFeatureLearningRate(feature, gradient);
-            gradients.setCoordinate(feature, gradient * featureLearningRate);
+            updateVec.setCoordinate(feature, gradient * -featureLearningRate);
        }
-       return gradients;
+       return updateVec;
     }
 
     /**
@@ -36,7 +37,7 @@ public class AdagradOptimizer extends SGDOptimizer {
      */
     public double updateAndGetFeatureLearningRate(String feature, double gradient) {
         double gradUpdate = 0.0;
-        if (gradients.containsKey(feature)) {
+        if (summedGradients.containsKey(feature)) {
             gradUpdate = gradient * gradient;
         } else {
             /**
@@ -46,13 +47,13 @@ public class AdagradOptimizer extends SGDOptimizer {
              */
             gradUpdate = 1d+(gradient * gradient);
         }
-        gradients.addToCoordinate(feature, gradUpdate);
+        summedGradients.addToCoordinate(feature, gradUpdate);
         unnormalizedGradients.addToCoordinate(feature, gradient);
         return getFeatureLearningRate(feature);
     }
 
     public double getFeatureLearningRate(String feature) {
-        return initialLearningRate/Math.sqrt(gradients.getCoordinate(feature));
+        return initialLearningRate/Math.sqrt(summedGradients.getCoordinate(feature));
     }
 
     /**
@@ -80,7 +81,7 @@ public class AdagradOptimizer extends SGDOptimizer {
     }
 
     public double adagradL1(String feature, double param, long iter) {
-        double eta = (initialLearningRate*iter)/Math.sqrt(gradients.getCoordinate(feature));
+        double eta = (initialLearningRate*iter)/Math.sqrt(summedGradients.getCoordinate(feature));
         double u = unnormalizedGradients.getCoordinate(feature);
         double normalizedGradient = u/iter;
         if (Math.abs(normalizedGradient) <= laplace) {
@@ -93,7 +94,7 @@ public class AdagradOptimizer extends SGDOptimizer {
 
     @Override
     public void teardown() {
-        gradients = new StringKeyedVector();
+        summedGradients = new StringKeyedVector();
         unnormalizedGradients = new StringKeyedVector();
     }
 

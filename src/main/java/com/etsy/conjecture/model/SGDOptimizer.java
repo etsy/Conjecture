@@ -23,7 +23,7 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
     double laplace = 0.0;
     double gaussian = 0.0;
     double initialLearningRate = 0.01;
-    UpdateableLinearModel model;
+    transient UpdateableLinearModel model;
 
     double examplesPerEpoch = 10000;
     boolean useExponentialLearningRate = false;
@@ -145,16 +145,16 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
     }
 
     public SGDOptimizer<L> setGaussianRegularizationWeight(double gaussian) {
-        checkArgument(gaussian > 0,
-                "gaussian regularization weight must be positive, given: %f",
+        checkArgument(gaussian >= 0.0,
+                "gaussian regularization weight must be non-negative, given: %f",
                 gaussian);
         this.gaussian = gaussian;
         return this;
     }
 
     public SGDOptimizer<L> setLaplaceRegularizationWeight(double laplace) {
-        checkArgument(laplace > 0,
-                "laplace regularization weight must be positive, given: %f",
+        checkArgument(laplace >= 0.0,
+                "laplace regularization weight must be non-negative, given: %f",
                 laplace);
         this.laplace = laplace;
         return this;

@@ -148,13 +148,12 @@ class MulticlassModelTrainer(args: Args, categories: Array[String]) extends Abst
         .setExponentialLearningRateBase(exponentialLearningRateBase)
         .setInitialLearningRate(initialLearningRate)
 
-    def buildMultiClassModel(m : UpdateableLinearModel[BinaryLabel], categories : Array[String]) : UpdateableMulticlassLinearModel = {
+    def buildMultiClassModel(buildSubModel : () => UpdateableLinearModel[BinaryLabel], categories : Array[String]) : UpdateableMulticlassLinearModel = {
         val param = categories.map{ i : String => 
-            (i, m.setTruncationPeriod(truncationPeriod)
+            (i, buildSubModel().setTruncationPeriod(truncationPeriod)
                 .setTruncationThreshold(truncationThresh)
                 .setTruncationUpdate(truncationAlpha))
             }.toMap
-
         new UpdateableMulticlassLinearModel(new java.util.HashMap[String,UpdateableLinearModel[BinaryLabel]](param) )
     }
 
@@ -164,10 +163,12 @@ class MulticlassModelTrainer(args: Args, categories: Array[String]) extends Abst
 
     def getModel: UpdateableMulticlassLinearModel = {
       val model = modelType match {
-        case "perceptron" => buildMultiClassModel(new Hinge(optimizer).setThreshold(0.0), categories)
-        case "linear_svm" => buildMultiClassModel(new Hinge(optimizer).setThreshold(1.0), categories)
-        case "logistic_regression" => buildMultiClassModel(new LogisticRegression(optimizer), categories)
-        case "mira" => buildMultiClassModel(new MIRA(), categories)
+        case "perceptron" => buildMultiClassModel({() => new Hinge(optimizer).setThreshold(0.0)}, categories)
+        case "linear_svm" => buildMultiClassModel({() => new Hinge(optimizer).setThreshold(1.0)}, categories)
+        // TODO: re-make proper multiclass logistic regression instead of this one vs all thing.
+        case "logistic_regression" => buildMultiClassModel({() => new LogisticRegression(optimizer)}, categories)
+        // TODO: re-make multiclass mira.
+        case "mira" => buildMultiClassModel({() => new MIRA()}, categories)
       }
       model.setModelType(modelType)
       model

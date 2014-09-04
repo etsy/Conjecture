@@ -27,7 +27,6 @@ public class UpdateableMulticlassLinearModel implements
 
     private static final long serialVersionUID = 8549108867384062857L;
     protected String modelType;
-    private Map<String, UpdateableLinearModel<BinaryLabel>> categoryModels;
 
     private String argString = "NOT SET";
 
@@ -35,8 +34,8 @@ public class UpdateableMulticlassLinearModel implements
 
     protected Map<String, UpdateableLinearModel<BinaryLabel>> param = new HashMap<String, UpdateableLinearModel<BinaryLabel>>();
 
-    public UpdateableMulticlassLinearModel(Map<String, UpdateableLinearModel<BinaryLabel>> categoryModels) {
-        this.categoryModels = categoryModels;
+    public UpdateableMulticlassLinearModel(Map<String, UpdateableLinearModel<BinaryLabel>> param) {
+        this.param = param;
         this.epoch = 0;
         this.modelType = this.getModelType();
     }

@@ -13,7 +13,7 @@ public class ElasticNetOptimizer extends SGDOptimizer implements LazyVector.Upda
     public StringKeyedVector getUpdate(LabeledInstance instance) {
         StringKeyedVector gradients = model.getGradients(instance);
         double learningRate = getDecreasingLearningRate(model.epoch);
-        gradients.mul(learningRate);
+        gradients.mul(-learningRate);
         return gradients;
     }
 
