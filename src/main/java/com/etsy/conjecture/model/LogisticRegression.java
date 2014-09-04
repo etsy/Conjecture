@@ -37,7 +37,7 @@ public class LogisticRegression extends UpdateableLinearModel<BinaryLabel> {
         StringKeyedVector gradients = instance.getVector().copy();
         double label = instance.getLabel().getAsPlusMinus();
         double inner = instance.getVector().dot(param);
-        double gradient = -label * Utilities.logistic(-label * inner);
+        double gradient = -label / (Math.exp(label * inner) + 1.0);
         gradients.mul(gradient);
         return gradients;
     }

@@ -90,7 +90,7 @@ public abstract class UpdateableLinearModel<L extends Label> implements
             param.incrementIteration();
         }
         StringKeyedVector update = optimizer.getUpdate(instance);
-        param.addScaled(update,-1.0);
+        param.add(update);
         truncate(instance);
         epoch++;
     }
