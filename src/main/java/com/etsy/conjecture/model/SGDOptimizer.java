@@ -146,7 +146,7 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
 
     public SGDOptimizer<L> setGaussianRegularizationWeight(double gaussian) {
         checkArgument(gaussian >= 0.0,
-                "gaussian regularization weight must be positive, given: %f",
+                "gaussian regularization weight must be non-negative, given: %f",
                 gaussian);
         this.gaussian = gaussian;
         return this;
@@ -154,7 +154,7 @@ public abstract class SGDOptimizer<L extends Label> implements LazyVector.Update
 
     public SGDOptimizer<L> setLaplaceRegularizationWeight(double laplace) {
         checkArgument(laplace >= 0.0,
-                "laplace regularization weight must be positive, given: %f",
+                "laplace regularization weight must be non-negative, given: %f",
                 laplace);
         this.laplace = laplace;
         return this;
