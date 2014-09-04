@@ -20,15 +20,16 @@ public class AdagradOptimizer extends SGDOptimizer {
     @Override
     public StringKeyedVector getUpdate(LabeledInstance instance) {
         StringKeyedVector gradients = model.getGradients(instance);
+        StringKeyedVector updateVec = new StringKeyedVector();
         Iterator it = gradients.iterator();
         while (it.hasNext()) {
             Map.Entry<String,Double> pairs = (Map.Entry)it.next();
             String feature = pairs.getKey();
             double gradient = pairs.getValue();
             double featureLearningRate = updateAndGetFeatureLearningRate(feature, gradient);
-            summedGradients.setCoordinate(feature, gradient * featureLearningRate);
+            updateVec.setCoordinate(feature, gradient * -featureLearningRate);
        }
-       return gradients;
+       return updateVec;
     }
 
     /**
