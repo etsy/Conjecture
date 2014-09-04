@@ -19,7 +19,7 @@ public class ControlOptimizer extends SGDOptimizer {
     public StringKeyedVector getUpdate(LabeledInstance instance) {
         StringKeyedVector gradients = model.getGradients(instance);
         StringKeyedVector updateVec = new StringKeyedVector();
-        Iterator it = gradients.iterator();
+        Iterator<Map.Entry<String, Double>> it = gradients.iterator();
         while (it.hasNext()) {
             Map.Entry<String,Double> pairs = (Map.Entry)it.next();
             String feature = pairs.getKey();

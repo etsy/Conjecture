@@ -24,7 +24,7 @@ public class FTRLOptimizer<L extends Label> extends SGDOptimizer<L> {
     public StringKeyedVector getUpdate(LabeledInstance<L> instance) {
         FTRLRegularization(instance);
         StringKeyedVector gradients = model.getGradients(instance);
-        Iterator it = gradients.iterator();
+        Iterator<Map.Entry<String, Double>> it = gradients.iterator();
         while (it.hasNext()) {
             Map.Entry<String,Double> pairs = (Map.Entry)it.next();
             String feature = pairs.getKey();
