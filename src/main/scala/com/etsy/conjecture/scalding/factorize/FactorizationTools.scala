@@ -14,8 +14,8 @@ object FactorizationTools {
 
     import com.twitter.scalding.Dsl._
     approxWeightLeftFactorsLeastSquares(rightFactors, id_sym, right_vec_sym,
-                                        designMatrix.insert('weight, 1.0), left_id, right_id,
-                                        'weight, left_vec_symbol, spill_threshold, parallelism)
+                                        designMatrix.insert('value, 1.0), left_id, right_id,
+                                        'value, left_vec_symbol, spill_threshold, parallelism)
   }
 
   def approxWeightLeftFactorsLeastSquares(rightFactors : Pipe, id_sym : Symbol, right_vec_sym : Symbol,
