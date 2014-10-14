@@ -7,21 +7,21 @@ import org.apache.commons.math3.linear._
 
 object FactorizationTools {
 
-  def approxLeftFactorsLeastSquares(rightFactors : Pipe, id_sym : Symbol, right_vec_sym : Symbol,
-                                    designMatrix : Pipe, left_id : Symbol, right_id : Symbol,
-                                    left_vec_symbol : Symbol,
-                                    spill_threshold : Int = 1000000, parallelism : Int = 1000) : Pipe = {
+  def approxLeftFactorsLeastSquaresBinary(rightFactors : Pipe, id_sym : Symbol, right_vec_sym : Symbol,
+                                          designMatrix : Pipe, left_id : Symbol, right_id : Symbol,
+                                          left_vec_symbol : Symbol,
+                                          spill_threshold : Int = 1000000, parallelism : Int = 1000) : Pipe = {
 
     import com.twitter.scalding.Dsl._
-    approxWeightLeftFactorsLeastSquares(rightFactors, id_sym, right_vec_sym,
-                                        designMatrix.insert('value, 1.0), left_id, right_id,
-                                        'value, left_vec_symbol, spill_threshold, parallelism)
+    approxLeftFactorsLeastSquares(rightFactors, id_sym, right_vec_sym,
+                                  designMatrix.insert('value, 1.0), left_id, right_id,
+                                  'value, left_vec_symbol, spill_threshold, parallelism)
   }
 
-  def approxWeightLeftFactorsLeastSquares(rightFactors : Pipe, id_sym : Symbol, right_vec_sym : Symbol,
-                                          designMatrix : Pipe, left_id : Symbol, right_id : Symbol,
-                                          value_sym : Symbol, left_vec_symbol : Symbol,
-                                          spill_threshold : Int = 1000000, parallelism : Int = 1000) : Pipe = {
+  def approxLeftFactorsLeastSquares(rightFactors : Pipe, id_sym : Symbol, right_vec_sym : Symbol,
+                                    designMatrix : Pipe, left_id : Symbol, right_id : Symbol,
+                                    value_sym : Symbol, left_vec_symbol : Symbol,
+                                    spill_threshold : Int = 1000000, parallelism : Int = 1000) : Pipe = {
 
     import com.twitter.scalding.Dsl._
     val inv_sym = 'inverse
