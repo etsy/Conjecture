@@ -20,7 +20,7 @@ object FactorizationTools {
 
   def approxWeightLeftFactorsLeastSquares(rightFactors : Pipe, id_sym : Symbol, right_vec_sym : Symbol,
                                           designMatrix : Pipe, left_id : Symbol, right_id : Symbol,
-                                          weight_symbol : Symbol, left_vec_symbol : Symbol,
+                                          value_sym : Symbol, left_vec_symbol : Symbol,
                                           spill_threshold : Int = 1000000, parallelism : Int = 1000) : Pipe = {
 
     import com.twitter.scalding.Dsl._
@@ -37,13 +37,14 @@ object FactorizationTools {
 
     val premultiplied_right_factors = rightFactors
       .crossWithTiny(inv_self_outer)
-      .map((right_vec_sym, inv_sym, weight_symbol) -> right_vec_sym) {
-        x:(RealVector, RealMatrix, Double) => x._2.operate(x._1.mapMultiply(x._3))
+      .map((right_vec_sym, inv_sym) -> right_vec_sym) {
+        x:(RealVector, RealMatrix) => x._2.operate(x._1)
       }
       .project(id_sym, right_vec_sym)
 
 
     designMatrix.joinWithSmaller(right_id -> id_sym, premultiplied_right_factors)
+      .map((right_vec_sym, value_sym) -> right_vec_sym) { x : (RealVector, Double) => x._1.mapMultiply(x._2) }
       .groupBy(left_id) {
         _.reduce[RealVector](right_vec_sym -> left_vec_symbol){ (x, y) => x.add(y) }
          .reducers(parallelism)
