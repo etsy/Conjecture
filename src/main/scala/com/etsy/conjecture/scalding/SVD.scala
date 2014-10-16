@@ -50,20 +50,20 @@ object SVD extends Serializable {
     // Multiply by powers of XX'.  This improves the approximation quality.
     val XXXS = X
       .joinWithSmaller('row -> 'row_, XS.rename('row -> 'row_), new InnerJoin(), reducers)
-      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
-      .groupBy('col){_.reduce('vec -> 'vec){(a : RealVector, b : RealVector) => a.add(b)}.forceToReducers.reducers(reducers)}
+      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiplyToSelf(x._1)}
+      .groupBy('col){_.reduce('vec -> 'vec){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
       .joinWithSmaller('col -> 'col_, X.rename('col -> 'col_), new InnerJoin(), reducers)
-      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
-      .groupBy('row){_.reduce('vec -> 'vec2){(a : RealVector, b : RealVector) => a.add(b)}.forceToReducers.reducers(reducers)}
+      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiplyToSelf(x._1)}
+      .groupBy('row){_.reduce('vec -> 'vec2){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
 
     val Y = (if(extra_power) {
       val XXXXXS = X
         .joinWithSmaller('row -> 'row_, XXXS.rename('row -> 'row_), new InnerJoin(), reducers)
-        .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
-        .groupBy('col){_.reduce('vec2 -> 'vec2){(a : RealVector, b : RealVector) => a.add(b)}.forceToReducers.reducers(reducers)}
+        .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiplyToSelf(x._1)}
+        .groupBy('col){_.reduce('vec2 -> 'vec2){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
         .joinWithSmaller('col -> 'col_, X.rename('col -> 'col_), new InnerJoin(), reducers)
-        .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
-        .groupBy('row){_.reduce('vec2 -> 'vec2){(a : RealVector, b : RealVector) => a.add(b)}.forceToReducers.reducers(reducers)}
+        .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiplyToSelf(x._1)}
+        .groupBy('row){_.reduce('vec2 -> 'vec2){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
 
       XS
         .joinWithSmaller('row -> 'row, XXXS, new InnerJoin(), reducers)
@@ -82,6 +82,7 @@ object SVD extends Serializable {
     // What follows is a QR decomposition of Y.
     // Note: Y = QR means Y'Y = R'R so R = chol(Y'Y)
     val YY = Y.mapTo('vec -> 'mat){x : RealVector => x.outerProduct(x)}
+      // Could rewrite addition function to act in-place on a or b here.
       .groupAll{_.reduce('mat -> 'mat){(a : RealMatrix, b : RealMatrix) => a.add(b)}}
       .mapTo('mat -> 'mat){m : RealMatrix =>
         val chol = new CholeskyDecomposition(m)
@@ -95,10 +96,11 @@ object SVD extends Serializable {
 
     // B = Q'X
     val B = X.joinWithSmaller('row -> 'row, Q, new InnerJoin(), reducers)
-      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
-      .groupBy('col){_.reduce('vec -> 'vec){(a : RealVector, b : RealVector) => a.add(b)}.reducers(reducers).forceToReducers}
+      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiplyToSelf(x._1)}
+      .groupBy('col){_.reduce('vec -> 'vec){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.reducers(reducers).forceToReducers}
 
     val EB = B.mapTo('vec -> 'mat){x : RealVector => x.outerProduct(x)}
+      // Same re: optimizing the addition to not create temp objects.
       .groupAll{_.reduce('mat -> 'mat){(a : RealMatrix, b : RealMatrix) => a.add(b)}}
       .mapTo('mat -> ('eigs, 'eigmat, 'orthomat)){m : RealMatrix =>
         val e = new EigenDecomposition(m)
