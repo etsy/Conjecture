@@ -2,7 +2,7 @@ package com.etsy.conjecture.scalding.factorize
 
 import cascading.pipe.Pipe
 import org.apache.commons.math3.linear._
-
+import cascading.pipe.joiner.InnerJoin
 
 
 object FactorizationTools {
@@ -43,10 +43,10 @@ object FactorizationTools {
       .project(id_sym, right_vec_sym)
 
 
-    designMatrix.joinWithSmaller(right_id -> id_sym, premultiplied_right_factors)
-      .map((right_vec_sym, value_sym) -> right_vec_sym) { x : (RealVector, Double) => x._1.mapMultiply(x._2) }
+    designMatrix.joinWithSmaller(right_id -> id_sym, premultiplied_right_factors, new InnerJoin(), parallelism)
+      .map((right_vec_sym, value_sym) -> right_vec_sym) { x : (RealVector, Double) => x._1.mapMultiplyToSelf(x._2) }
       .groupBy(left_id) {
-        _.reduce[RealVector](right_vec_sym -> left_vec_symbol){ (x, y) => x.add(y) }
+        _.reduce[RealVector](right_vec_sym -> left_vec_symbol){ (x, y) => x.combineToSelf(1, 1, y) }
          .reducers(parallelism)
          .spillThreshold(spill_threshold)
       }
