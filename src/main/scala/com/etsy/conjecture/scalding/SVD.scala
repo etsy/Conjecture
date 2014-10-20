@@ -50,19 +50,19 @@ object SVD extends Serializable {
     // Multiply by powers of XX'.  This improves the approximation quality.
     val XXXS = X
       .joinWithSmaller('row -> 'row_, XS.rename('row -> 'row_), new InnerJoin(), reducers)
-      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiplyToSelf(x._1)}
+      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
       .groupBy('col){_.reduce('vec -> 'vec){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
       .joinWithSmaller('col -> 'col_, X.rename('col -> 'col_), new InnerJoin(), reducers)
-      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiplyToSelf(x._1)}
+      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
       .groupBy('row){_.reduce('vec -> 'vec2){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
 
     val Y = (if(extra_power) {
       val XXXXXS = X
         .joinWithSmaller('row -> 'row_, XXXS.rename('row -> 'row_), new InnerJoin(), reducers)
-        .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiplyToSelf(x._1)}
+        .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
         .groupBy('col){_.reduce('vec2 -> 'vec2){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
         .joinWithSmaller('col -> 'col_, X.rename('col -> 'col_), new InnerJoin(), reducers)
-        .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiplyToSelf(x._1)}
+        .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
         .groupBy('row){_.reduce('vec2 -> 'vec2){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
 
       XS
@@ -96,7 +96,7 @@ object SVD extends Serializable {
 
     // B = Q'X
     val B = X.joinWithSmaller('row -> 'row, Q, new InnerJoin(), reducers)
-      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiplyToSelf(x._1)}
+      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
       .groupBy('col){_.reduce('vec -> 'vec){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.reducers(reducers).forceToReducers}
 
     val EB = B.mapTo('vec -> 'mat){x : RealVector => x.outerProduct(x)}

@@ -44,7 +44,8 @@ object FactorizationTools {
 
 
     designMatrix.joinWithSmaller(right_id -> id_sym, premultiplied_right_factors, new InnerJoin(), parallelism)
-      .map((right_vec_sym, value_sym) -> right_vec_sym) { x : (RealVector, Double) => x._1.mapMultiplyToSelf(x._2) }
+      // Save an alloc if we do the binary case.
+      .map((right_vec_sym, value_sym) -> right_vec_sym) { x : (RealVector, Double) => if(x._2 == 1.0) x._1 else x._1.mapMultiply(x._2) }
       .groupBy(left_id) {
         _.reduce[RealVector](right_vec_sym -> left_vec_symbol){ (x, y) => x.combineToSelf(1, 1, y) }
          .reducers(parallelism)
