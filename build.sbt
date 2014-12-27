@@ -30,11 +30,11 @@ resolvers ++= {
   )
 }
 
-libraryDependencies += "cascading" % "cascading-core" % "2.0.0"
+libraryDependencies += "cascading" % "cascading-core" % "2.6.1"
 
-libraryDependencies += "cascading" % "cascading-local" % "2.0.0" exclude("com.google.guava", "guava")
+libraryDependencies += "cascading" % "cascading-local" % "2.6.1" exclude("com.google.guava", "guava")
 
-libraryDependencies += "cascading" % "cascading-hadoop" % "2.0.0"
+libraryDependencies += "cascading" % "cascading-hadoop" % "2.6.1"
 
 libraryDependencies += "cascading.kryo" % "cascading.kryo" % "0.4.6"
 
