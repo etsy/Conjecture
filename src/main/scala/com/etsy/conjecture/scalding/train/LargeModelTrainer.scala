@@ -64,7 +64,7 @@ class LargeModelTrainer[L <: Label, M <: UpdateableModel[L, M]](strategy: ModelT
                     }
                 }
             }
-            .groupBy('param) { _.sum('value).forceToReducers }
+            .groupBy('param) { _.sum[Double]('value).forceToReducers }
             // Duplicate the summed parameters rather than duplicating the reconstructed model, for speed reasons.
             .flatMapTo(('param, 'value) -> ('bin, 'param, 'value)) {
                 b: (String, Double) =>

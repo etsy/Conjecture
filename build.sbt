@@ -47,8 +47,8 @@ libraryDependencies += "com.twitter" % "algebird-core" % "0.1.12" cross CrossVer
   case _ => "2.10"
 }
 
-libraryDependencies += "com.twitter" % "scalding-core" % "0.8.5" cross CrossVersion.binaryMapped {
-  case "2.9.3" => "2.9.2"
+libraryDependencies += "com.twitter" % "scalding-core" % "0.12.0" cross CrossVersion.binaryMapped {
+  case "2.9.3" => "2.9.3"
   case _ => "2.10"
 }
 
