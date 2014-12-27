@@ -42,8 +42,8 @@ libraryDependencies += "com.google.code.gson" % "gson" % "2.2.2"
 
 libraryDependencies += "com.twitter" % "maple" % "0.2.4"
 
-libraryDependencies += "com.twitter" % "algebird-core" % "0.1.12" cross CrossVersion.binaryMapped {
-  case "2.9.3" => "2.9.2"
+libraryDependencies += "com.twitter" % "algebird-core" % "0.7.1" cross CrossVersion.binaryMapped {
+  case "2.9.3" => "2.9.3"
   case _ => "2.10"
 }
 
