@@ -68,11 +68,11 @@ libraryDependencies += "com.google.guava" % "guava" % "13.0.1"
 
 libraryDependencies += "org.apache.commons" % "commons-math3" % "3.2"
 
-libraryDependencies += "org.apache.hadoop" % "hadoop-common" % "2.0.0-cdh4.1.1" exclude("commons-daemon", "commons-daemon")
+libraryDependencies += "org.apache.hadoop" % "hadoop-common" % "2.5.0-cdh5.2.1" exclude("commons-daemon", "commons-daemon")
 
-libraryDependencies += "org.apache.hadoop" % "hadoop-hdfs" % "2.0.0-cdh4.1.1" exclude("commons-daemon", "commons-daemon")
+libraryDependencies += "org.apache.hadoop" % "hadoop-hdfs" % "2.5.0-cdh5.2.1" exclude("commons-daemon", "commons-daemon")
 
-libraryDependencies += "org.apache.hadoop" % "hadoop-tools" % "2.0.0-mr1-cdh4.1.1" exclude("commons-daemon", "commons-daemon")
+libraryDependencies += "org.apache.hadoop" % "hadoop-tools" % "2.5.0-mr1-cdh5.2.1" exclude("commons-daemon", "commons-daemon")
 
 libraryDependencies += "net.sf.trove4j" % "trove4j" % "3.0.3"
 
