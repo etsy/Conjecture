@@ -50,6 +50,7 @@ class AdHocClustererTest(args: Args) extends Job(args) {
     val id_field = Symbol(args.getOrElse("id_field", "id"))
     val instance_field = Symbol(args.getOrElse("instance_field", "instance"))
     val xmx = args.getOrElse("xmx", "3").toInt
+    val containerMemory = (xmx * 1024 * 1.16).toInt
     
     val max_finish_iters = init_iters + finish_iters
     val total_iter = init_iters + finish_iters + kmeans_iters
@@ -318,5 +319,8 @@ class AdHocClustererTest(args: Args) extends Job(args) {
     }
 
     override def config(implicit mode : Mode) = super.config ++
-      Map("mapred.child.java.opts" -> "-Xmx%dG".format(xmx))
+      Map("mapred.child.java.opts" -> "-Xmx%dG".format(xmx),
+        "mapreduce.map.memory.mb" -> containerMemory.toString,
+        "mapreduce.reduce.memory.mb" -> containerMemory.toString
+      )
 }
