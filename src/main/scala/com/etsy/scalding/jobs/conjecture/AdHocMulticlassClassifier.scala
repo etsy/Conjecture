@@ -18,6 +18,7 @@ class AdHocMulticlassClassifier(args : Args) extends Job(args) {
   val categories = args("categories").split(",").toArray
 
   val xmx = args.getOrElse("xmx", "3").toInt
+  val containerMemory = (xmx * 1024 * 1.16).toInt
 
   // Let the user configure the field names on the command line.
   val data_field_names = args.getOrElse("data_fields", "instance").split(",")
@@ -45,5 +46,7 @@ class AdHocMulticlassClassifier(args : Args) extends Job(args) {
   }
 
   override def config = super.config ++
-    Map("mapred.child.java.opts" -> "-Xmx%dG".format(xmx))
+    Map("mapred.child.java.opts" -> "-Xmx%dG".format(xmx),
+        "mapreduce.map.memory.mb" -> containerMemory.toString,
+        "mapreduce.reduce.memory.mb" -> containerMemory.toString)
 }
