@@ -41,6 +41,7 @@ class AdHocPredictor(args : Args) extends Job(args) {
     .write(SequenceFile(out_dir + "/pred"))
 
   override def config = super.config ++
+    Map("mapred.child.java.opts" -> "-Xmx%dG".format(xmx),
         "mapreduce.map.memory.mb" -> containerMemory.toString,
         "mapreduce.reduce.memory.mb" -> containerMemory.toString
     )
