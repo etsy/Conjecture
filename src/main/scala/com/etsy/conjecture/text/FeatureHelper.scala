@@ -25,7 +25,7 @@ object FeatureHelper {
                     }
                     vector.keySet.asScala.map { k => k -> 1 }
             }
-            .groupBy('term) { _.sum('__count) }
+            .groupBy('term) { _.sum[Long]('__count) }
             .filter('__count) { c: Long => c > n }
             .mapTo('term -> 'set) { t: String => Set(t) }
             .groupAll { _.plus[Set[String]]('set) }
