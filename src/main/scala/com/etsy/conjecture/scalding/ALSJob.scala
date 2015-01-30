@@ -27,7 +27,7 @@ import org.apache.commons.math3.linear._
 
 abstract class ALSJob[R, C](args : Args) extends Job(args) {
 
-  override def config: Map[AnyRef, AnyRef] =
+  override def config(implicit mode : Mode): Map[AnyRef, AnyRef] =
     super.config + ("mapred.child.java.opts" -> "-Xmx3G")
 
   // Dimension of latent factors.

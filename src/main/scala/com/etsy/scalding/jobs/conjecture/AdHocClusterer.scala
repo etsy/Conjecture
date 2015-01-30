@@ -167,7 +167,7 @@ class AdHocClustererTest(args: Args) extends Job(args) {
 
       /** Sum all closest distances into a normalizer **/
       val normalizer = closest_distances
-        .groupAll{ _.sum[Double]('closest_distance -> 'denominator) }
+        .groupAll{ _.sum('closest_distance -> 'denominator) }
     
       /** 
        * Normalize each points' distance to it's nearest cluster center to a probability. 
@@ -318,9 +318,6 @@ class AdHocClustererTest(args: Args) extends Job(args) {
       }   
     }
 
-    override def config = super.config ++
-      Map("mapred.child.java.opts" -> "-Xmx%dG".format(xmx),
-        "mapreduce.map.memory.mb" -> containerMemory.toString,
-        "mapreduce.reduce.memory.mb" -> containerMemory.toString
-      )
+    override def config(implicit mode : Mode) = super.config ++
+      Map("mapred.child.java.opts" -> "-Xmx%dG".format(xmx))
 }
