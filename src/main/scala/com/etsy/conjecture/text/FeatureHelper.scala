@@ -9,6 +9,10 @@ import cascading.pipe.Pipe
 
 import scala.collection.JavaConverters._
 
+import spray.json._
+import DefaultJsonProtocol._
+
+
 object FeatureHelper {
 
     import com.twitter.scalding.Dsl._
@@ -73,7 +77,7 @@ object FeatureHelper {
 
     def parseEmailBodyToTextAndType(body: String): (String, String) = {
         try {
-            val email = com.codahale.jerkson.Json.parse[List[Map[String, String]]](body)
+            val email = JsonParser(body).convertTo[List[Map[String, String]]]
             val textParts = email.filter(part => part("type") == "text/plain")
             if (textParts.length > 0)
                 (textParts.map(part => part("body")).mkString(" "), "text/plain")
