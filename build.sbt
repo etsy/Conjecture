@@ -5,7 +5,7 @@ import com.gramercysoftware.multipublish.MultiPublish._
 
 name := "conjecture"
 
-version := "0.1.16-SNAPSHOT"
+version := "0.1.17-SNAPSHOT"
 
 organization := "com.etsy"
 
@@ -56,12 +56,10 @@ libraryDependencies += "commons-lang" % "commons-lang" % "2.4"
 
 libraryDependencies += "com.joestelmach" % "natty" % "0.7"
 
-// Jerkson is abandoned and there is no 0.7.0 version built for Scala 2.10 from io.backchat
-// com.cloudphysics has a Scala 2.10 version with a different versioning scheme
-// Thus the apparent decrease in version number
+// Jerkson is abandoned, switched to Spray-Json in May 2015
 libraryDependencies <+= scalaVersion {
-  case "2.9.3" => "io.backchat.jerkson" % "jerkson_2.9.2" % "0.7.0"
-  case _ => "com.cloudphysics" % "jerkson_2.10" % "0.6.3"
+  case "2.9.3" => "io.spray" % "spray-json_2.9.3" % "1.2.6"
+  case _ => "io.spray" % "spray-json_2.10" % "1.3.2"
 }
 
 libraryDependencies += "com.google.guava" % "guava" % "13.0.1"
