@@ -39,12 +39,7 @@ class GenericCrossValidator[L <: Label, M <: UpdateableModel[L, M], E <: ModelEv
     }
 
     def crossValidate(pipe: Pipe, instanceField: Symbol): Pipe = {
-        val folded = pipe.map(Fields.ALL -> '__fold) { te: TupleEntry => math.abs((te.getTuple.hashCode.toString + salt).hashCode) % folds }
-        // process each fold in parallel.
-        val preds = (0 until folds).map { i: Int => predictFold(folded, '__model, instanceField, '__actual, '__pred, i) }
-        // pull into one pipe.
-        evaluator.evaluate(preds.reduce { _ ++ _ }, '__pred, '__actual, '__eval)
-            .map('__eval -> '__eval) { a: EvaluationAggregator[L] => a.toString }
+        crossValidateWithPredictions(pipe, instanceField, '__prediction, '__actual)._1
     }
 
     def evaluateFold(folded: Pipe, modelField: Symbol, instanceField: Symbol, labelField: Symbol, evalField: Symbol, fold: Int): Pipe = {
