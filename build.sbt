@@ -5,15 +5,11 @@ import com.gramercysoftware.multipublish.MultiPublish._
 
 name := "conjecture"
 
-version := "0.1.17-SNAPSHOT"
+version := "0.1.18-SNAPSHOT"
 
 organization := "com.etsy"
 
-scalaVersion := "2.9.3"
-
-crossScalaVersions := Seq("2.9.3", "2.10.4")
-
-sbtVersion := "0.12.1"
+scalaVersion := "2.10.4"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
@@ -42,25 +38,15 @@ libraryDependencies += "com.google.code.gson" % "gson" % "2.2.2"
 
 libraryDependencies += "com.twitter" % "maple" % "0.12.0"
 
-libraryDependencies += "com.twitter" % "algebird-core" % "0.7.1" cross CrossVersion.binaryMapped {
-  case "2.9.3" => "2.9.3"
-  case _ => "2.10"
-}
+libraryDependencies += "com.twitter" %% "algebird-core" % "0.10.1"
 
-libraryDependencies += "com.twitter" % "scalding-core" % "0.12.0" cross CrossVersion.binaryMapped {
-  case "2.9.3" => "2.9.3"
-  case _ => "2.10"
-}
+libraryDependencies += "com.twitter" %% "scalding-core" % "0.15.0"
 
 libraryDependencies += "commons-lang" % "commons-lang" % "2.4"
 
 libraryDependencies += "com.joestelmach" % "natty" % "0.7"
 
-// Jerkson is abandoned, switched to Spray-Json in May 2015
-libraryDependencies <+= scalaVersion {
-  case "2.9.3" => "io.spray" % "spray-json_2.9.3" % "1.2.6"
-  case _ => "io.spray" % "spray-json_2.10" % "1.3.2"
-}
+libraryDependencies += "io.spray" %% "spray-json" % "1.3.2"
 
 libraryDependencies += "com.google.guava" % "guava" % "13.0.1"
 

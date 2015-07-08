@@ -32,7 +32,7 @@ object FeatureHelper {
             .groupBy('term) { _.sum[Long]('__count) }
             .filter('__count) { c: Long => c > n }
             .mapTo('term -> 'set) { t: String => Set(t) }
-            .groupAll { _.plus[Set[String]]('set) }
+            .groupAll { _.sum[Set[String]]('set) }
 
         pipe
             .crossWithTiny(counts)
