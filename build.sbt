@@ -1,19 +1,12 @@
 import sbt._
-import AssemblyKeys._
-import aether.Aether._
-import com.gramercysoftware.multipublish.MultiPublish._
 
 name := "conjecture"
 
-version := "0.1.17-SNAPSHOT"
+version := "0.1.18-SNAPSHOT"
 
 organization := "com.etsy"
 
-scalaVersion := "2.9.3"
-
-crossScalaVersions := Seq("2.9.3", "2.10.4")
-
-sbtVersion := "0.12.1"
+scalaVersion := "2.10.4"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
@@ -30,59 +23,37 @@ resolvers ++= {
   )
 }
 
-libraryDependencies += "cascading" % "cascading-core" % "2.6.1"
-
-libraryDependencies += "cascading" % "cascading-local" % "2.6.1" exclude("com.google.guava", "guava")
-
-libraryDependencies += "cascading" % "cascading-hadoop" % "2.6.1"
-
-libraryDependencies += "cascading.kryo" % "cascading.kryo" % "0.4.6"
-
-libraryDependencies += "com.google.code.gson" % "gson" % "2.2.2"
-
-libraryDependencies += "com.twitter" % "maple" % "0.12.0"
-
-libraryDependencies += "com.twitter" % "algebird-core" % "0.7.1" cross CrossVersion.binaryMapped {
-  case "2.9.3" => "2.9.3"
-  case _ => "2.10"
-}
-
-libraryDependencies += "com.twitter" % "scalding-core" % "0.12.0" cross CrossVersion.binaryMapped {
-  case "2.9.3" => "2.9.3"
-  case _ => "2.10"
-}
-
-libraryDependencies += "commons-lang" % "commons-lang" % "2.4"
-
-libraryDependencies += "com.joestelmach" % "natty" % "0.7"
-
-// Jerkson is abandoned, switched to Spray-Json in May 2015
-libraryDependencies <+= scalaVersion {
-  case "2.9.3" => "io.spray" % "spray-json_2.9.3" % "1.2.6"
-  case _ => "io.spray" % "spray-json_2.10" % "1.3.2"
-}
-
-libraryDependencies += "com.google.guava" % "guava" % "13.0.1"
-
-libraryDependencies += "org.apache.commons" % "commons-math3" % "3.2"
-
-libraryDependencies += "org.apache.hadoop" % "hadoop-common" % "2.5.0-cdh5.2.1" exclude("commons-daemon", "commons-daemon")
-
-libraryDependencies += "org.apache.hadoop" % "hadoop-hdfs" % "2.5.0-cdh5.2.1" exclude("commons-daemon", "commons-daemon")
-
-libraryDependencies += "org.apache.hadoop" % "hadoop-tools" % "2.5.0-mr1-cdh5.2.1" exclude("commons-daemon", "commons-daemon")
-
-libraryDependencies += "net.sf.trove4j" % "trove4j" % "3.0.3"
-
-libraryDependencies += "com.esotericsoftware.kryo" % "kryo" % "2.21"
-
-libraryDependencies += "com.novocode" % "junit-interface" % "0.10" % "test"
+libraryDependencies ++= Seq(
+  "cascading" % "cascading-core" % "2.6.1",
+  "cascading" % "cascading-local" % "2.6.1" exclude("com.google.guava", "guava"),
+  "cascading" % "cascading-hadoop" % "2.6.1",
+  "cascading.kryo" % "cascading.kryo" % "0.4.6",
+  "com.google.code.gson" % "gson" % "2.2.2",
+  "com.twitter" % "maple" % "0.15.0",
+  "com.twitter" %% "algebird-core" % "0.10.1" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
+  "com.twitter" %% "scalding-core" % "0.15.0" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
+  "commons-lang" % "commons-lang" % "2.4",
+  "com.joestelmach" % "natty" % "0.7",
+  "io.spray" %% "spray-json" % "1.3.2" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
+  "com.google.guava" % "guava" % "13.0.1",
+  "org.apache.commons" % "commons-math3" % "3.2",
+  "org.apache.hadoop" % "hadoop-common" % "2.5.0-cdh5.2.1" excludeAll(
+    ExclusionRule(organization="commons-daemon", name="commons-daemon"),
+    ExclusionRule(organization="com.google.guava", name="guava")
+  ),
+  "org.apache.hadoop" % "hadoop-hdfs" % "2.5.0-cdh5.2.1" excludeAll(
+    ExclusionRule(organization="commons-daemon", name="commons-daemon"),
+    ExclusionRule(organization="com.google.guava", name="guava")
+  ),
+  "org.apache.hadoop" % "hadoop-tools" % "2.5.0-mr1-cdh5.2.1" exclude("commons-daemon", "commons-daemon"),
+  "net.sf.trove4j" % "trove4j" % "3.0.3",
+  "com.esotericsoftware.kryo" % "kryo" % "2.21",
+  "com.novocode" % "junit-interface" % "0.10" % "test"
+)
 
 parallelExecution in Test := false
 
 publishArtifact in Test := false
-
-seq(assemblySettings: _*)
 
 publishTo <<= version { v : String =>
   val archivaURL = "http://ivy.etsycorp.com/repository"
@@ -126,9 +97,6 @@ pomExtra := (
 
 
 credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
-
-
-seq(aetherPublishSettings: _*)
 
 pomIncludeRepository := { _ => false }
 
