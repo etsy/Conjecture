@@ -163,5 +163,5 @@ object BadWords {
 
     def apply(input: String): Boolean = badwords.contains(input)
 
-    val badwords = Set("ahole", "arse", "ass", "asshole", "asswipe", "bastard", "batty", "bender", "bitch", "bloody", "bollocks", "boner", "bumboy", "bugger", "coon:", "cock", "cocksucker", "cracker", "crap", "cumsucker", "cunt", "damn", "dick", "dildo", "douchebag", "faggot", "fistfucker", "fuck", "fucker", "fuckwit", "fucktwat", "gaylord", "ho", "honky", "jackass", "jism", "joey", "knobcheese", "minge", "minger", "mong", "motherfucker", "munter", "pickle", "piss", "piss", "prick", "pussy", "rimmer", "schmuck", "shit", "slut", "spakka", "spaz", "skank", "taint", "tit", "tool", "tosser", "twat", "whore", "wanker")
+    val badwords = Set("ahole", "arse", "ass", "asshole", "asswipe", "bastard", "batty", "bender", "bitch", "bloody", "bollocks", "boner", "bumboy", "bugger", "coon", "cock", "cocksucker", "cracker", "crap", "cumsucker", "cunt", "damn", "dick", "dildo", "douchebag", "faggot", "fistfucker", "fuck", "fucker", "fuckwit", "fucktwat", "gaylord", "ho", "honky", "jackass", "jism", "joey", "knobcheese", "minge", "minger", "mong", "motherfucker", "munter", "pickle", "piss", "piss", "prick", "pussy", "rimmer", "schmuck", "shit", "slut", "spakka", "spaz", "skank", "taint", "tit", "tool", "tosser", "twat", "whore", "wanker")
 }
