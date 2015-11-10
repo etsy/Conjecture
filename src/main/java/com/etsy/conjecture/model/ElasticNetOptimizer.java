@@ -1,13 +1,8 @@
 package com.etsy.conjecture.model;
 
-import com.etsy.conjecture.data.LazyVector;
-import com.etsy.conjecture.data.Label;
-import com.etsy.conjecture.data.LabeledInstance;
-import java.util.Collection;
-import com.etsy.conjecture.Utilities;
-import com.etsy.conjecture.data.StringKeyedVector;
+import com.etsy.conjecture.data.*;
 
-public class ElasticNetOptimizer extends SGDOptimizer implements LazyVector.UpdateFunction {
+public class ElasticNetOptimizer<L extends Label> extends SGDOptimizer<L> implements LazyVector.UpdateFunction {
 
     @Override
     public StringKeyedVector getUpdate(LabeledInstance instance) {
