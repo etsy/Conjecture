@@ -16,6 +16,7 @@ class AdHocPredictor(args : Args) extends Job(args) {
   val model = args.getOrElse("model", "specify a model")
   val problemName = args.getOrElse("name", "demo_problem")
   val xmx = args.getOrElse("xmx", "3").toInt
+  val skipFinalSort = args.boolean("skip_final_sort")
   val containerMemory = (xmx * 1024 * 1.16).toInt
 
   // Let the user configure the field names on the command line.
@@ -28,7 +29,7 @@ class AdHocPredictor(args : Args) extends Job(args) {
 
   val model_pipe = SequenceFile(model, model_field).read
 
-  instances.crossWithTiny(model_pipe)
+  val predictions = instances.crossWithTiny(model_pipe)
     .map((model_field, instance_field) -> ('pred, 'explain)) {
         x : (UpdateableLinearModel[BinaryLabel], BinaryLabeledInstance) =>
         (x._1.predict(x._2.getVector), x._1.explainPrediction(x._2.getVector))
@@ -37,8 +38,13 @@ class AdHocPredictor(args : Args) extends Job(args) {
     .map(instance_field -> 'supporting_data) { x : BinaryLabeledInstance => x.getSupportingData() }
     .project('supporting_data, 'pred)
     .map('pred -> 'pred) { in : BinaryLabel => in.getValue() }
-    .groupAll { _.sortBy('pred).reverse }
-    .write(SequenceFile(out_dir + "/pred"))
+
+  val output = if (skipFinalSort)
+    predictions
+  else
+    predictions.groupAll { _.sortBy('pred).reverse }
+
+  output.write(SequenceFile(out_dir + "/pred"))
 
   override def config = super.config ++
     Map("mapred.child.java.opts" -> "-Xmx%dG".format(xmx),
