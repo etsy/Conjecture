@@ -1,17 +1,13 @@
 package com.etsy.conjecture.model;
 
-import com.etsy.conjecture.data.LazyVector;
-import com.etsy.conjecture.data.StringKeyedVector;
-import static com.google.common.base.Preconditions.checkArgument;
-import com.etsy.conjecture.Utilities;
-import com.etsy.conjecture.data.LabeledInstance;
-import java.util.Map;
-import java.util.Iterator;
+import com.etsy.conjecture.data.*;
+
+import java.util.*;
 
 /**
  *  Current search ads control. Remove after current exp.
  */
-public class ControlOptimizer extends SGDOptimizer {
+public class ControlOptimizer<L extends Label> extends SGDOptimizer<L> {
 
     private StringKeyedVector summedGradients = new StringKeyedVector();
 
