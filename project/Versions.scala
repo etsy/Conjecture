@@ -1,0 +1,1 @@
+case class Versions(maple: String, algebird: String, scalding: String)
