@@ -31,7 +31,7 @@ object SVD extends Serializable {
   * V : pipe of ('col, 'vec) where vec is a RealVector
   * note that the vectors are rows of the matrices U and V, not the columns which correspond to the left and right singular vectors.
   */
-  def apply[R, C](X : Pipe, d : Int, extra_power : Boolean = true, reducers : Int = 500) : (Pipe, Pipe, Pipe) = {
+  def apply[R, C](X : Pipe, d : Int, extra_power : Boolean = true, reducers : Int = 500, no_power : Boolean = false) : (Pipe, Pipe, Pipe) = {
 
     // Sample the columns, into the thin matrix.
     val XS = X.groupBy('row){_.toList[(C, Double)](('col, 'val) -> 'list).reducers(reducers)}
@@ -48,36 +48,40 @@ object SVD extends Serializable {
       .project('row, 'vec)
 
     // Multiply by powers of XX'.  This improves the approximation quality.
-    val XXXS = X
-      .joinWithSmaller('row -> 'row_, XS.rename('row -> 'row_), new InnerJoin(), reducers)
-      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
-      .groupBy('col){_.reduce('vec -> 'vec){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
-      .joinWithSmaller('col -> 'col_, X.rename('col -> 'col_), new InnerJoin(), reducers)
-      .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
-      .groupBy('row){_.reduce('vec -> 'vec2){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
-
-    val Y = (if(extra_power) {
-      val XXXXXS = X
-        .joinWithSmaller('row -> 'row_, XXXS.rename('row -> 'row_), new InnerJoin(), reducers)
-        .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
-        .groupBy('col){_.reduce('vec2 -> 'vec2){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
+    val Y = if(!no_power) {
+      val XXXS = X
+        .joinWithSmaller('row -> 'row_, XS.rename('row -> 'row_), new InnerJoin(), reducers)
+        .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
+        .groupBy('col){_.reduce('vec -> 'vec){(a : RealVector, b : RealVector) => a.add(b)}.forceToReducers.reducers(reducers)}
         .joinWithSmaller('col -> 'col_, X.rename('col -> 'col_), new InnerJoin(), reducers)
-        .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
-        .groupBy('row){_.reduce('vec2 -> 'vec2){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.forceToReducers.reducers(reducers)}
+        .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
+        .groupBy('row){_.reduce('vec -> 'vec2){(a : RealVector, b : RealVector) => a.add(b)}.forceToReducers.reducers(reducers)}
 
-      XS
-        .joinWithSmaller('row -> 'row, XXXS, new InnerJoin(), reducers)
-        .map(('vec, 'vec2) -> 'vec){x : (RealVector, RealVector) => x._1.append(x._2)}
-        .project('row, 'vec)
-        .joinWithSmaller('row -> 'row, XXXXXS, new InnerJoin(), reducers)
-        .map(('vec, 'vec2) -> 'vec){x : (RealVector, RealVector) => x._1.append(x._2)}
-        .project('row, 'vec)
+      if(extra_power) {
+        val XXXXXS = X
+          .joinWithSmaller('row -> 'row_, XXXS.rename('row -> 'row_), new InnerJoin(), reducers)
+          .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
+          .groupBy('col){_.reduce('vec2 -> 'vec2){(a : RealVector, b : RealVector) => a.add(b)}.forceToReducers.reducers(reducers)}
+          .joinWithSmaller('col -> 'col_, X.rename('col -> 'col_), new InnerJoin(), reducers)
+          .map(('val, 'vec2) -> 'vec2){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
+          .groupBy('row){_.reduce('vec2 -> 'vec2){(a : RealVector, b : RealVector) => a.add(b)}.forceToReducers.reducers(reducers)}
+
+        XS
+          .joinWithSmaller('row -> 'row, XXXS, new InnerJoin(), reducers)
+          .map(('vec, 'vec2) -> 'vec){x : (RealVector, RealVector) => x._1.append(x._2)}
+          .project('row, 'vec)
+          .joinWithSmaller('row -> 'row, XXXXXS, new InnerJoin(), reducers)
+          .map(('vec, 'vec2) -> 'vec){x : (RealVector, RealVector) => x._1.append(x._2)}
+          .project('row, 'vec)
+      } else {
+        XS
+          .joinWithSmaller('row -> 'row, XXXS, new InnerJoin(), reducers)
+          .map(('vec, 'vec2) -> 'vec){x : (RealVector, RealVector) => x._1.append(x._2)}
+          .project('row, 'vec)
+      }
     } else {
       XS
-        .joinWithSmaller('row -> 'row, XXXS, new InnerJoin(), reducers)
-        .map(('vec, 'vec2) -> 'vec){x : (RealVector, RealVector) => x._1.append(x._2)}
-        .project('row, 'vec)
-    })
+    }
 
     // What follows is a QR decomposition of Y.
     // Note: Y = QR means Y'Y = R'R so R = chol(Y'Y)
@@ -94,29 +98,37 @@ object SVD extends Serializable {
       .map(('vec, 'mat) -> 'vec){x : (RealVector, RealMatrix) => x._2.operate(x._1)}
       .project('row, 'vec)
 
-    // B = Q'X
+    // B = X'Q
     val B = X.joinWithSmaller('row -> 'row, Q, new InnerJoin(), reducers)
       .map(('val, 'vec) -> 'vec){x : (Double, RealVector) => x._2.mapMultiply(x._1)}
       .groupBy('col){_.reduce('vec -> 'vec){(a : RealVector, b : RealVector) => a.combineToSelf(1, 1, b)}.reducers(reducers).forceToReducers}
 
+    // Uee eig(B'B) to get at svd(B)  -- B = m * d
+    // RWR' = B'B -- R = d*d
+    // want UEV = B -- U = m*d, V = d*d
+    // so V'E^2V = B'B = RWR' so
+    // V = R'
+    // W = sqrt(E)
+    // U = BE^{-1}V'
     val EB = B.mapTo('vec -> 'mat){x : RealVector => x.outerProduct(x)}
       // Same re: optimizing the addition to not create temp objects.
       .groupAll{_.reduce('mat -> 'mat){(a : RealMatrix, b : RealMatrix) => a.add(b)}}
-      .mapTo('mat -> ('eigs, 'eigmat, 'orthomat)){m : RealMatrix =>
+      .mapTo('mat -> ('eigs, 'eigmat)){m : RealMatrix =>
         val e = new EigenDecomposition(m)
-        (e.getRealEigenvalues,
-         e.getVT,
-         e.getVT.multiply(MatrixUtils.createRealDiagonalMatrix(e.getRealEigenvalues.map{v => if(v < 0.00000001) 0.0 else 1.0 / math.sqrt(v)})))
+        (e.getRealEigenvalues.map{ei => math.sqrt(ei)},
+         e.getVT)
       }
 
-    val E = EB.project('eigs).map('eigs -> 'eigs){x : Array[Double] => (0 until d).map{i => math.sqrt(x(i))}.toArray}
+    val E = EB.project('eigs).map('eigs -> 'eigs){x : Array[Double] => x.take(d)}
 
     val U = Q.crossWithTiny(EB.project('eigmat))
       .map(('vec, 'eigmat) -> 'vec){x : (RealVector, RealMatrix) => x._2.operate(x._1).getSubVector(0,d)}
       .project('row, 'vec)
 
-    val V = B.crossWithTiny(EB.project('orthomat))
-      .map(('vec, 'orthomat) -> 'vec){x : (RealVector, RealMatrix) => x._2.operate(x._1).getSubVector(0,d)}
+    val V = B.crossWithTiny(EB)
+      .map(('vec, 'eigmat, 'eigs) -> 'vec){x : (RealVector, RealMatrix, Array[Double]) =>
+        MatrixUtils.createRealDiagonalMatrix(x._3.map{1.0/ _}).operate(x._2.operate(x._1)).getSubVector(0,d)
+      }
       .project('col, 'vec)
 
     (U, E, V)
