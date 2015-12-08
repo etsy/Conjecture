@@ -45,6 +45,10 @@ public class EvaluationAggregator<L extends Label> implements Serializable {
         }
     }
 
+    public double getValue(String key) {
+       return stats.get(key).getMean();
+    }
+
     @Override
     public String toString() {
         StringBuilder buff = new StringBuilder("Stat:\tMean\tStdDev\tMedian\n");
