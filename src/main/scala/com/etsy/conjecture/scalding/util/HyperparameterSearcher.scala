@@ -1,20 +1,126 @@
 package com.etsy.conjecture.scalding.util
 
-import cascading.flow.FlowDef
-import java.text.SimpleDateFormat
+import java.io.Serializable
 
-import com.twitter.scalding._
-import com.twitter.scalding.Dsl._
-import com.etsy.conjecture.model._
-import com.etsy.conjecture.scalding.train._
-import com.etsy.conjecture.evaluation._
-import com.etsy.conjecture.scalding.evaluate.{GenericEvaluator, BinaryEvaluator, RegressionEvaluator, MulticlassEvaluator}
 import cascading.pipe.Pipe
 import com.etsy.conjecture.data._
+import com.etsy.conjecture.evaluation._
+import com.etsy.conjecture.model._
+import com.etsy.conjecture.scalding.evaluate.{BinaryEvaluator, GenericEvaluator, MulticlassEvaluator, RegressionEvaluator}
+import com.etsy.conjecture.scalding.train._
+import com.twitter.scalding.Dsl._
+import com.twitter.scalding._
 
-import java.io.Serializable
 import scala.util.Random
 
+/**
+  * Samples random parameter values to perform a fast efficient hyperparameter search
+  */
+abstract class HyperparameterSearcher[L <: Label, M <: UpdateableModel[L, M], E <: ModelEvaluation[L]]
+                                      (option: DynamicOptions, parameters: Seq[HyperParameter[_]],
+                                       val numTrials: Int, rng: Random = new Random(0)) extends Serializable {
+
+  val settings = (0 until numTrials).map { trial : Int => trial -> sampledParameters(rng) }.toMap
+
+  def getModelTrainer(args: Args): ModelTrainerStrategy[L, M]
+  val evaluator: GenericEvaluator[L]
+
+  //draw parameter values from given sample method
+  //save values in a new Arg instance
+  def sampledParameters(rng: Random): Args = {
+    parameters.foreach(_.set(rng))
+    option.unParse
+  }
+
+  def search (instances: Pipe, instance_field: Symbol): Pipe = {
+    //Split train test by ratio
+    val splitSet = instances.map(instance_field -> '__fold) { li: LabeledInstance[L] => rng.nextInt(10) <= 7 }
+    val trainSet = splitSet.filter('__fold) { foldId: Boolean => foldId }
+    val testSet = splitSet.filter('__fold) { foldId: Boolean => !foldId }
+
+    val train = generateTrials(trainSet, instance_field)
+    val test = generateTrials(testSet, instance_field)
+
+    val models = trainTrials(train)
+    evaluate(models, test)
+      .groupAll{
+         _.sortBy('eval).reverse
+      }
+  }
+
+  def generateTrials(instances: Pipe, instance_field: Symbol): Pipe = {
+    instances
+      .flatMapTo('instance -> ('instance, 'trial)) {
+         instance: LabeledInstance[L] =>
+             settings.keySet.map {
+               trial: Int =>
+                  (instance, trial)
+             }
+       }
+       .groupBy('trial) {
+          _.toList[LabeledInstance[L]]('instance -> 'instances).reducers(1000)
+       }.project('trial, 'instances)
+  }
+
+  def trainTrials(instances: Pipe): Pipe = {
+       instances
+         .mapTo(('trial, 'instances) -> ('trial, 'model)) {
+           x: (Int, List[LabeledInstance[L]]) =>
+           //In the unlike case that a setting does not exist, use the default value
+           val args: Args = settings.getOrElse(x._1, option.unParse)
+           val instanceSet = x._2
+           val modelTrainer = getModelTrainer(args)
+           val model = modelTrainer.getModel
+           //Train model
+           instanceSet.foreach(model.update)
+           (x._1, model)
+        }
+  }
+
+  def evaluate (models: Pipe, testSet: Pipe): Pipe = {
+     val eval = models
+       .joinWithSmaller('trial -> 'trial, testSet)
+       .mapTo(('model, 'instances, 'trial) -> ('eval, 'setting, 'model)) {
+          x: (M, List[LabeledInstance[L]], Int) =>
+          val model = x._1
+          val testList = x._2
+          val args = settings.getOrElse(x._3, option.unParse)
+          (evaluateAccuracy(testList, model),  args.toString, model)
+       }
+       eval
+  }
+
+  def evaluateAccuracy(instances: List[LabeledInstance[L]], model: M): Double = {
+        val eval = evaluator.build
+        instances.map {
+            instance: LabeledInstance[L] =>
+                val realLabel = instance.getLabel
+                val prediction = model.predict(instance.getVector)
+                eval.add(realLabel, prediction)
+        }
+        val agg = new EvaluationAggregator[L]()
+        agg.add(eval)
+        agg.getValue("Acc (avg)")
+    }
+}
+
+
+class BinaryHyperparameterSearcher(option: DynamicOptions, parameters: Seq[HyperParameter[_]],
+                                 numTrials: Int) extends HyperparameterSearcher[BinaryLabel, UpdateableLinearModel[BinaryLabel], BinaryModelEvaluation](option, parameters, numTrials) {
+    val evaluator = new BinaryEvaluator()
+    def getModelTrainer(args: Args) = new BinaryModelTrainer(args)
+}
+
+class RegressionHyperparameterSearcher(option: DynamicOptions, parameters: Seq[HyperParameter[_]],
+                                 numTrials: Int) extends HyperparameterSearcher[RealValuedLabel, UpdateableLinearModel[RealValuedLabel], RegressionModelEvaluation](option, parameters, numTrials) {
+    val evaluator = new RegressionEvaluator()
+    def getModelTrainer(args: Args) = new RegressionModelTrainer(args)
+}
+
+class MulticlassHyperparameterSearcher(option: DynamicOptions, parameters: Seq[HyperParameter[_]], numTrials: Int, categories: Array[String]) extends HyperparameterSearcher[MulticlassLabel, UpdateableMulticlassLinearModel, MulticlassModelEvaluation](option, parameters, numTrials) {
+    val evaluator = new MulticlassEvaluator(categories)
+    def getModelTrainer(args: Args) = new MulticlassModelTrainer(args, categories)
+}
 
 trait ParameterSampler[T] extends Serializable {
   def sample(rng: scala.util.Random): T
@@ -77,111 +183,4 @@ case class HyperParameter[T](option: DynamicOption[T], sampler: ParameterSampler
     }
     buff.toString()
   }
-}
-
-/**
-  * Samples random parameter values to perform a fast efficient hyperparameter search
-  */
-abstract class HyperparameterSearcher[L <: Label, M <: UpdateableModel[L, M], E <: ModelEvaluation[L]](option: DynamicOptions, parameters: Seq[HyperParameter[_]], 
-                                        val numTrials: Int, rng: Random = new Random(0)) extends Serializable {
-
-  val settings = (0 until numTrials).map { trial : Int => trial -> sampledParameters(rng) }.toMap
- 
-  def getModelTrainer(args: Args): ModelTrainerStrategy[L, M]
-  val evaluator: GenericEvaluator[L]
- 
-  //draw parameter values from given sample method
-  //save values in a new Arg instance
-  def sampledParameters(rng: Random): Args = {
-    parameters.foreach(_.set(rng))
-    option.unParse
-  }
-
-  def search (instances: Pipe, instance_field: Symbol): Pipe = {
-    //Split train test by ratio
-    val splitSet = instances.map(instance_field -> '__fold) { li: LabeledInstance[L] => rng.nextInt(10) <= 7 }
-    val trainSet = splitSet.filter('__fold) { foldId: Boolean => foldId }
-    val testSet = splitSet.filter('__fold) { foldId: Boolean => !foldId }
-    
-    val train = generateTrials(trainSet, instance_field)
-    val test = generateTrials(testSet, instance_field)
-    
-    val models = trainTrials(train)
-    evaluate(models, test)
-      .groupAll{
-         _.sortBy('eval).reverse
-      }
-  }
-
-  def generateTrials(instances: Pipe, instance_field: Symbol): Pipe = {
-    instances
-      .flatMapTo('instance -> ('instance, 'trial)) {
-         instance: LabeledInstance[L] =>
-             settings.keySet.map {
-               trial: Int =>
-                  (instance, trial)
-             }
-       }
-       .groupBy('trial) {
-          _.toList[LabeledInstance[L]]('instance -> 'instances).reducers(1000)
-       }.project('trial, 'instances)
-  }
-
-  def trainTrials(instances: Pipe): Pipe = {
-       instances
-         .mapTo(('trial, 'instances) -> ('trial, 'model)) {
-           x: (Int, List[LabeledInstance[L]]) =>
-           val args: Args = settings.getOrElse(x._1, option.unParse)
-           val instanceSet = x._2
-           val modelTrainer = getModelTrainer(args) 
-           val model = modelTrainer.getModel
-           //Train model
-           instanceSet.foreach(model.update)
-           (x._1, model)
-        }
-  }
-
-  def evaluate (models: Pipe, testSet: Pipe): Pipe = {
-     val eval = models
-       .joinWithSmaller('trial -> 'trial, testSet)
-       .mapTo(('model, 'instances, 'trial) -> ('eval, 'setting, 'model)) {
-          x: (M, List[LabeledInstance[L]], Int) =>
-          val model = x._1
-          val testList = x._2
-          val args = settings.getOrElse(x._3, option.unParse)
-          (evaluateAccuracy(testList, model),  args.toString, model)
-       }
-       eval
-  }
-
-  def evaluateAccuracy(instances: List[LabeledInstance[L]], model: M): Double = {
-        val eval = evaluator.build
-        instances.map { 
-            instance: LabeledInstance[L] => 
-                val realLabel = instance.getLabel
-                val prediction = model.predict(instance.getVector)
-                eval.add(realLabel, prediction)
-        }
-        val agg = new EvaluationAggregator[L]()
-        agg.add(eval)
-        agg.getValue("Acc (avg)")
-    }
-}
-
-
-class BinaryHyperparameterSearcher(option: DynamicOptions, parameters: Seq[HyperParameter[_]],
-                                 numTrials: Int, folds: Int) extends HyperparameterSearcher[BinaryLabel, UpdateableLinearModel[BinaryLabel], BinaryModelEvaluation](option, parameters, numTrials) {
-    val evaluator = new BinaryEvaluator()
-    def getModelTrainer(args: Args) = new BinaryModelTrainer(args)
-}
-
-class RegressionHyperparameterSearcher(option: DynamicOptions, parameters: Seq[HyperParameter[_]],
-                                 numTrials: Int, folds: Int) extends HyperparameterSearcher[RealValuedLabel, UpdateableLinearModel[RealValuedLabel], RegressionModelEvaluation](option, parameters, numTrials) {
-    val evaluator = new RegressionEvaluator()
-    def getModelTrainer(args: Args) = new RegressionModelTrainer(args)
-}
-
-class MulticlassHyperparameterSearcher(option: DynamicOptions, parameters: Seq[HyperParameter[_]], numTrials: Int, folds: Int, categories: Array[String]) extends HyperparameterSearcher[MulticlassLabel, UpdateableMulticlassLinearModel, MulticlassModelEvaluation](option, parameters, numTrials) {
-    val evaluator = new MulticlassEvaluator(categories) 
-    def getModelTrainer(args: Args) = new MulticlassModelTrainer(args, categories)
 }

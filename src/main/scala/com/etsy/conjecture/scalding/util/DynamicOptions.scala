@@ -1,11 +1,9 @@
 package com.etsy.conjecture.scalding.util
 
-import com.twitter.scalding.Args
 import java.io.Serializable
-import scala.collection.mutable.{HashMap,HashSet,ArrayBuffer}
+import com.twitter.scalding.Args
+import scala.collection.mutable.{ArrayBuffer, HashMap}
 import scala.reflect.runtime.universe._
-
-
 
 class DynamicOptions(args: Args) extends Serializable {
   private val opts = new HashMap[String, DynamicOption[_]]
@@ -31,32 +29,34 @@ class DynamicOptions(args: Args) extends Serializable {
     this
   }
 
-  /** The arguments that were unqualified by dashed options. */
+  /** The arguments that were unqualified by dashed options.
+    * Currently unused but held for future work.
+    */
   private val _remaining = new ArrayBuffer[String]
   def remaining: Seq[String] = _remaining
+
   /** Parse sequence of command-line arguments. */
   def parse(args: Args): Unit = {
-    var index = 0
-    args.m.filter(!_._2.isEmpty).foreach { 
+    args.m.filter(!_._2.isEmpty).foreach {
       case (key, listValues) =>
-      //Only take first value for the   
+      //Only take first value from the values
       val value = listValues.head
-        key match {
-          case k: String if (opts.contains(k)) => opts(k).parseValue(value) 
-          case "" =>  _remaining += value
-          case _ => {
-            opts.+=((key, new DynamicOption(key, value))) 
-            opts(key).parseValue(value)
-          }
+      key match {
+        case k: String if (opts.contains(k)) => opts(k).parseValue(value)
+        case "" =>  _remaining += value
+        case _ => {
+          opts.+=((key, new DynamicOption(key, value)))
+          opts(key).parseValue(value)
         }
       }
-  } 
+    }
+  }
 
   def unParse: Args = {
       val newM = opts.map{cmd => cmd._1->List(cmd._2.value.toString())}.toMap
       new Args(newM)
   }
-  
+
 
   class DynamicOption[T](val name:String, val defaultValue:T)(implicit m: Manifest[T]) extends com.etsy.conjecture.scalding.util.DynamicOption[T] with Serializable {
     def this(name: String)(implicit m: Manifest[T]) = this(name, null.asInstanceOf[T])
@@ -115,9 +115,9 @@ trait DynamicOption[T] {
   override def toString: String = {
     if (hasValue)
       value match {
-        case a: Seq[_] => Seq(f"--$name%s") ++ a.map(_.toString)
+        case a: Seq[_] => Seq("--" + name + " ") ++ a.map(_.toString)
         case "" => Seq()
-        case a: Any => Seq(f"--$name%s=${value.toString}%s")
+        case a: Any => Seq("--" + name + " " + value.toString)
       }
     else
       Seq()
