@@ -17,7 +17,7 @@ import scala.util.Random
   * Samples random parameter values to perform a fast efficient hyperparameter search
   */
 abstract class HyperparameterSearcher[L <: Label, M <: UpdateableModel[L, M], E <: ModelEvaluation[L]]
-                                      (option: DynamicOptions, parameters: Seq[HyperParameter[_]],
+                                      (val options: DynamicOptions, val parameters: Seq[HyperParameter[_]],
                                        val numTrials: Int, rng: Random = new Random(0)) extends Serializable {
 
   val settings = (0 until numTrials).map { trial : Int => trial -> sampledParameters(rng) }.toMap
@@ -29,10 +29,10 @@ abstract class HyperparameterSearcher[L <: Label, M <: UpdateableModel[L, M], E 
   //save values in a new Arg instance
   def sampledParameters(rng: Random): Args = {
     parameters.foreach(_.set(rng))
-    option.unParse
+    options.unParse
   }
 
-  def search (instances: Pipe, instance_field: Symbol): Pipe = {
+  def search (instances: Pipe, instance_field: Symbol): (Pipe, Pipe) = {
     //Split train test by ratio
     val splitSet = instances.map(instance_field -> '__fold) { li: LabeledInstance[L] => rng.nextInt(10) <= 7 }
     val trainSet = splitSet.filter('__fold) { foldId: Boolean => foldId }
@@ -42,10 +42,14 @@ abstract class HyperparameterSearcher[L <: Label, M <: UpdateableModel[L, M], E 
     val test = generateTrials(testSet, instance_field)
 
     val models = trainTrials(train)
-    evaluate(models, test)
-      .groupAll{
-         _.sortBy('eval).reverse
+    val results = evaluate(models, test)
+    val report = results.groupAll{
+        _.toList[String]('result -> 'results)
       }
+      .mapTo('results -> 'report) {
+         results: String => parameters.map(_.report).mkString("\n")
+      }
+    (results, report)
   }
 
   def generateTrials(instances: Pipe, instance_field: Symbol): Pipe = {
@@ -67,7 +71,7 @@ abstract class HyperparameterSearcher[L <: Label, M <: UpdateableModel[L, M], E 
          .mapTo(('trial, 'instances) -> ('trial, 'model)) {
            x: (Int, List[LabeledInstance[L]]) =>
            //In the unlike case that a setting does not exist, use the default value
-           val args: Args = settings.getOrElse(x._1, option.unParse)
+           val args: Args = settings.getOrElse(x._1, options.unParse)
            val instanceSet = x._2
            val modelTrainer = getModelTrainer(args)
            val model = modelTrainer.getModel
@@ -80,14 +84,22 @@ abstract class HyperparameterSearcher[L <: Label, M <: UpdateableModel[L, M], E 
   def evaluate (models: Pipe, testSet: Pipe): Pipe = {
      val eval = models
        .joinWithSmaller('trial -> 'trial, testSet)
-       .mapTo(('model, 'instances, 'trial) -> ('eval, 'setting, 'model)) {
+       .mapTo(('model, 'instances, 'trial) -> ('eval, 'settings)) {
           x: (M, List[LabeledInstance[L]], Int) =>
           val model = x._1
           val testList = x._2
-          val args = settings.getOrElse(x._3, option.unParse)
-          (evaluateAccuracy(testList, model),  args.toString, model)
+          val args = settings.getOrElse(x._3, options.unParse)
+          val acc = evaluateAccuracy(testList, model)
+          //Make sure the options are set to the current parameter values
+          options.parse(args)
+          parameters.foreach(_.accumulate(acc))
+          (acc, options.toString)
        }
-       eval
+       .groupAll{
+         _.sortBy('eval).reverse
+       }
+       .mapTo(('eval, 'settings) -> 'result) { x: (Double, String) =>  x._1 + "\t" + x._2 }
+     eval
   }
 
   def evaluateAccuracy(instances: List[LabeledInstance[L]], model: M): Double = {
@@ -122,8 +134,13 @@ class MulticlassHyperparameterSearcher(option: DynamicOptions, parameters: Seq[H
     def getModelTrainer(args: Args) = new MulticlassModelTrainer(args, categories)
 }
 
+/**
+ * Sampling method for hyperparameters
+ * Also defines how to bucket parameter values and accuracies for hyperparameter reports
+ */
 trait ParameterSampler[T] extends Serializable {
   def sample(rng: scala.util.Random): T
+  //Array corresponds to value, sum, sumSq, max, count
   def buckets: Array[(T,Double,Double,Double,Int)]
   def valueToBucket(v: T): Int
   def accumulate(value: T, d: Double) {
@@ -176,10 +193,11 @@ case class HyperParameter[T](option: DynamicOption[T], sampler: ParameterSampler
     for ((value, sum, sumSq, max, count) <- sampler.buckets) {
       val mean = sum/count
       val stdDev = math.sqrt(sumSq/count - mean*mean)
-      value match {
+      val means = value match {
         case v: Double => Vector(v.toDouble, mean, stdDev, max, max, count).mkString("\t")
         case _ => Vector(value.toString, mean, stdDev, max, max, count).mkString("\t")
       }
+      buff.append(means)
     }
     buff.toString()
   }
