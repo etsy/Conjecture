@@ -20,6 +20,7 @@ abstract class HyperparameterSearcher[L <: Label, M <: UpdateableModel[L, M], E 
                                       (val options: DynamicOptions, val parameters: Seq[HyperParameter[_]],
                                        val numTrials: Int, rng: Random = new Random(0)) extends Serializable {
 
+  //Map of trial id to a randomly sampled set of parameters
   val settings = (0 until numTrials).map { trial : Int => trial -> sampledParameters(rng) }.toMap
 
   def getModelTrainer(args: Args): ModelTrainerStrategy[L, M]
@@ -34,22 +35,28 @@ abstract class HyperparameterSearcher[L <: Label, M <: UpdateableModel[L, M], E 
 
   def search (instances: Pipe, instance_field: Symbol): (Pipe, Pipe) = {
     //Split train test by ratio
+    //TODO Should make this into a parameter
     val splitSet = instances.map(instance_field -> '__fold) { li: LabeledInstance[L] => rng.nextInt(10) <= 7 }
     val trainSet = splitSet.filter('__fold) { foldId: Boolean => foldId }
     val testSet = splitSet.filter('__fold) { foldId: Boolean => !foldId }
 
+    //Restructure data pipes into trainable format and assign an ID that defines the random setting to use
     val train = generateTrials(trainSet, instance_field)
     val test = generateTrials(testSet, instance_field)
 
     val models = trainTrials(train)
-    val results = evaluate(models, test)
-    val report = results.groupAll{
-        _.toList[String]('result -> 'results)
+
+    val rawResults = evaluate(models, test)
+
+    val runResults = rawResults
+      .mapTo(('settings, 'eval) -> 'result) {
+        x: (Args, Double) =>
+          x._2 + "\t" + x._1.toString
       }
-      .mapTo('results -> 'report) {
-         results: String => parameters.map(_.report).mkString("\n")
-      }
-    (results, report)
+    //Tally up test accs to find metrics on tested param values
+    val paramReport = createParameterReport(rawResults)
+
+    (runResults, paramReport)
   }
 
   def generateTrials(instances: Pipe, instance_field: Symbol): Pipe = {
@@ -90,30 +97,40 @@ abstract class HyperparameterSearcher[L <: Label, M <: UpdateableModel[L, M], E 
           val testList = x._2
           val args = settings.getOrElse(x._3, options.unParse)
           val acc = evaluateAccuracy(testList, model)
-          //Make sure the options are set to the current parameter values
-          options.parse(args)
-          parameters.foreach(_.accumulate(acc))
-          (acc, options.toString)
+          (acc, args)
        }
-       .groupAll{
-         _.sortBy('eval).reverse
-       }
-       .mapTo(('eval, 'settings) -> 'result) { x: (Double, String) =>  x._1 + "\t" + x._2 }
      eval
   }
 
   def evaluateAccuracy(instances: List[LabeledInstance[L]], model: M): Double = {
-        val eval = evaluator.build
-        instances.map {
-            instance: LabeledInstance[L] =>
-                val realLabel = instance.getLabel
-                val prediction = model.predict(instance.getVector)
-                eval.add(realLabel, prediction)
-        }
-        val agg = new EvaluationAggregator[L]()
-        agg.add(eval)
-        agg.getValue("Acc (avg)")
-    }
+      val eval = evaluator.build
+      instances.map {
+        instance: LabeledInstance[L] =>
+              val realLabel = instance.getLabel
+              val prediction = model.predict(instance.getVector)
+              eval.add(realLabel, prediction)
+      }
+      val agg = new EvaluationAggregator[L]()
+      agg.add(eval)
+      agg.getValue("Acc (avg)")
+  }
+
+
+  //Tally up evaluation scores of random parameter values and create a report of the mean/stdDev/max/count_of_runs
+  def createParameterReport(rawResults: Pipe): Pipe = {
+    rawResults
+      .groupAll{
+        _.toList[(Args, Double)](('settings, 'eval) -> 'results)
+      }
+      .mapTo('results -> 'report) {
+         results: List[(Args,Double)] =>
+           results.map{ x =>
+             options.parse(x._1)
+             parameters.foreach(_.accumulate(x._2))
+            }
+            parameters.map(_.report).mkString("\n")
+      }
+  }
 }
 
 
@@ -140,13 +157,13 @@ class MulticlassHyperparameterSearcher(option: DynamicOptions, parameters: Seq[H
  */
 trait ParameterSampler[T] extends Serializable {
   def sample(rng: scala.util.Random): T
-  //Array corresponds to value, sum, sumSq, max, count
-  def buckets: Array[(T,Double,Double,Double,Int)]
+  //Array corresponds to bucketed parameter value, then the sum, sumSq, max, count of times that param bucket was run
+  val buckets: Array[(T, Double, Double, Double, Int)]
   def valueToBucket(v: T): Int
   def accumulate(value: T, d: Double) {
     val v = math.max(0, math.min(valueToBucket(value), buckets.length-1))
-    val (_, sum, sumSq, max, count) = buckets(v)
-    buckets(v) = (value, sum+d, sumSq+d*d, math.max(max, d), count+1)
+    val (_, sum, sumSq, max, count) = this.buckets(v)
+    this.buckets(v) = (value, sum+d, sumSq+d*d, math.max(max, d), count+1)
   }
 }
 
@@ -154,7 +171,7 @@ trait ParameterSampler[T] extends Serializable {
  * Samples uniformly one value from the sequence.
  */
 class SampleFromSeq[T](seq: Seq[T]) extends ParameterSampler[T] {
-  val buckets = seq.map(s => (s,0.0,0.0,0.0,0)).toArray
+  val buckets = seq.map(s => (s, 0.0, 0.0, 0.0, 0)).toArray
   def valueToBucket(v: T) = buckets.toSeq.map(_._1).indexOf(v)
   def sample(rng: Random) = seq(rng.nextInt(seq.length))
 }
@@ -164,7 +181,7 @@ class SampleFromSeq[T](seq: Seq[T]) extends ParameterSampler[T] {
  */
 class UniformDoubleSampler(lower: Double, upper: Double, numBuckets: Int = 10) extends ParameterSampler[Double] {
   val dif = upper - lower
-  val buckets = (0 to numBuckets).map(i => (0.0, 0.0, 0.0, 0.0,0)).toArray
+  val buckets = (0 to numBuckets).map(i => (0.0, 0.0, 0.0, 0.0, 0)).toArray
   def valueToBucket(d: Double) = (numBuckets*(d - lower)/dif).toInt
   def sample(rng: Random) = rng.nextDouble()*dif + lower
 }
@@ -185,19 +202,20 @@ class LogUniformDoubleSampler(lower: Double, upper: Double, numBuckets: Int = 10
  * @param option The DynamicOption wrapper for the parameter
  * @param sampler Sampler to use to return values for the parameter
  */
-case class HyperParameter[T](option: DynamicOption[T], sampler: ParameterSampler[T]) {
+class HyperParameter[T](option: DynamicOption[T], val sampler: ParameterSampler[T]) {
+  val buckets = sampler.buckets
   def set(rng: Random) { option.setValue(sampler.sample(rng)) }
   def accumulate(objective: Double) { sampler.accumulate(option.value, objective) }
   def report(): String = {
-    val buff = new StringBuilder("Parameter: "+option.name+"\tMean\tStdDev\tMedian\n")
-    for ((value, sum, sumSq, max, count) <- sampler.buckets) {
+    val buff = new StringBuilder("Parameter: "+option.name+"\tMean\tStdDev\tMax\tCount\n")
+    for ((value, sum, sumSq, max, count) <- buckets) {
       val mean = sum/count
       val stdDev = math.sqrt(sumSq/count - mean*mean)
-      val means = value match {
-        case v: Double => Vector(v.toDouble, mean, stdDev, max, max, count).mkString("\t")
-        case _ => Vector(value.toString, mean, stdDev, max, max, count).mkString("\t")
+      val metrics = value match {
+        case v: Double => Vector(f"${v.toDouble}%2.15f",  f"$mean%2.4f", f"$stdDev%2.4f",f"$max%1.4f", count).mkString("\t")
+        case _ => Vector(f"${value.toString}%20s",  f"$mean%2.4f", f"$stdDev%2.4f",f"$max%1.4f", count).mkString("\t")
       }
-      buff.append(means)
+      buff.append(metrics + "\n")
     }
     buff.toString()
   }
