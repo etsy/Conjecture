@@ -17,7 +17,7 @@ val versions = scaldingVersionProp match {
 name := "conjecture"
 
 version := {
-  val baseVersion = "0.1.19"
+  val baseVersion = "0.1.20"
   scaldingVersionProp match {
     case "0.12" => s"$baseVersion-SNAPSHOT"
     case s => s"${baseVersion}_$s-SNAPSHOT"
@@ -66,6 +66,7 @@ libraryDependencies ++= Seq(
     ExclusionRule(organization="com.google.guava", name="guava")
   ),
   "org.apache.hadoop" % "hadoop-tools" % "2.5.0-mr1-cdh5.3.0" exclude("commons-daemon", "commons-daemon"),
+  "org.scala-lang" % "scala-reflect" % "2.10.3",
   "net.sf.trove4j" % "trove4j" % "3.0.3",
   "com.esotericsoftware.kryo" % "kryo" % "2.21",
   "com.novocode" % "junit-interface" % "0.10" % "test"
