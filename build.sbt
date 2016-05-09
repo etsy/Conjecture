@@ -1,28 +1,8 @@
 import sbt._
 
-// This supports a kind of cross-building for Scalding 0.12.0 and 0.15.0
-// The default is 0.12.0, but adding the -Dscalding.version=0.15 argument on the command line
-// will cause this to build with 0.15 instead
-val scaldingVersionProp = System.getProperty("scalding.version") match {
-  case null => "0.12"
-  case s => s
-}
-
-val versions = scaldingVersionProp match {
-  case "0.15" => Versions("0.15.0", "0.10.1", "0.15.0")
-  case "0.12" => Versions("0.12.0", "0.7.1", "0.12.0")
-  case s => throw new IllegalArgumentException(s"Invalid scalding.version property: $s")
-}
-
 name := "conjecture"
 
-version := {
-  val baseVersion = "0.1.20"
-  scaldingVersionProp match {
-    case "0.12" => s"$baseVersion-SNAPSHOT"
-    case s => s"${baseVersion}_$s-SNAPSHOT"
-  }
-}
+version := "0.2.0-SNAPSHOT"
 
 organization := "com.etsy"
 
@@ -31,8 +11,6 @@ scalaVersion := "2.10.4"
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 compileOrder := CompileOrder.JavaThenScala
-
-javaHome := Some(file("/usr/java/latest"))
 
 publishArtifact in packageDoc := false
 
@@ -49,9 +27,9 @@ libraryDependencies ++= Seq(
   "cascading" % "cascading-hadoop" % "2.6.1",
   "cascading.kryo" % "cascading.kryo" % "0.4.6",
   "com.google.code.gson" % "gson" % "2.2.2",
-  "com.twitter" % "maple" % versions.maple,
-  "com.twitter" %% "algebird-core" % versions.algebird excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
-  "com.twitter" %% "scalding-core" % versions.scalding excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
+  "com.twitter" % "maple" % "0.16.0",
+  "com.twitter" %% "algebird-core" % "0.12.0" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
+  "com.twitter" %% "scalding-core" % "0.16.0" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
   "commons-lang" % "commons-lang" % "2.4",
   "com.joestelmach" % "natty" % "0.7",
   "io.spray" %% "spray-json" % "1.3.2" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
