@@ -1,4 +1,5 @@
 import sbt._
+import SonatypeKeys._
 
 name := "conjecture"
 
@@ -12,12 +13,10 @@ scalacOptions ++= Seq("-unchecked", "-deprecation")
 
 compileOrder := CompileOrder.JavaThenScala
 
-publishArtifact in packageDoc := false
-
 resolvers ++= {
   Seq(
-      "Concurrent Maven Repo" at "http://conjars.org/repo",
-      "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
+    "Concurrent Maven Repo" at "http://conjars.org/repo",
+    "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
   )
 }
 
@@ -38,11 +37,11 @@ libraryDependencies ++= Seq(
   "org.apache.hadoop" % "hadoop-common" % "2.5.0-cdh5.3.0" excludeAll(
     ExclusionRule(organization="commons-daemon", name="commons-daemon"),
     ExclusionRule(organization="com.google.guava", name="guava")
-  ),
+    ),
   "org.apache.hadoop" % "hadoop-hdfs" % "2.5.0-cdh5.3.0" excludeAll(
     ExclusionRule(organization="commons-daemon", name="commons-daemon"),
     ExclusionRule(organization="com.google.guava", name="guava")
-  ),
+    ),
   "org.apache.hadoop" % "hadoop-tools" % "2.5.0-mr1-cdh5.3.0" exclude("commons-daemon", "commons-daemon"),
   "org.scala-lang" % "scala-reflect" % "2.10.3",
   "net.sf.trove4j" % "trove4j" % "3.0.3",
@@ -54,12 +53,19 @@ parallelExecution in Test := false
 
 publishArtifact in Test := false
 
-publishTo <<= version { v : String =>
-  val archivaURL = "http://ivy.etsycorp.com/repository"
-  if (v.trim.endsWith("SNAPSHOT")) {
-    Some("publish-snapshots" at (archivaURL + "/snapshots"))
+xerial.sbt.Sonatype.sonatypeSettings
+
+publishTo := {
+  if (System.getProperty("release") != null) {
+    publishTo.value
   } else {
-    Some("publish-releases"  at (archivaURL + "/internal"))
+    val v = version.value
+    val archivaURL = "http://ivy.etsycorp.com/repository"
+    if (v.trim.endsWith("SNAPSHOT")) {
+      Some("publish-snapshots" at (archivaURL + "/snapshots"))
+    } else {
+      Some("publish-releases"  at (archivaURL + "/internal"))
+    }
   }
 }
 
@@ -95,9 +101,6 @@ pomExtra := <url>https://github.com/etsy/Conjecture</url>
   </developers>
 
 
-// Uncomment this for publishing to Sonatype
-// credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
-
 pomIncludeRepository := { _ => false }
 
 // Uncomment if you don't want to run all the tests before building assembly
@@ -112,11 +115,11 @@ assemblyExcludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
 
 // Some of these files have duplicates, let's ignore:
 assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
-  {
-    case s if s.endsWith(".class") => MergeStrategy.last
-    case s if s.endsWith("project.clj") => MergeStrategy.concat
-    case s if s.endsWith(".html") => MergeStrategy.last
-    case s if s.contains("servlet") => MergeStrategy.last
-    case x => old(x)
-  }
+{
+  case s if s.endsWith(".class") => MergeStrategy.last
+  case s if s.endsWith("project.clj") => MergeStrategy.concat
+  case s if s.endsWith(".html") => MergeStrategy.last
+  case s if s.contains("servlet") => MergeStrategy.last
+  case x => old(x)
+}
 }
