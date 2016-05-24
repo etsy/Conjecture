@@ -2,7 +2,7 @@ import sbt._
 
 name := "conjecture"
 
-version := "0.2.0-SNAPSHOT"
+version := "0.2.1-SNAPSHOT"
 
 organization := "com.etsy"
 
