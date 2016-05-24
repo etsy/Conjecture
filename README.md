@@ -1,4 +1,4 @@
-#Conjecture
+#Conjecture [![Build Status](https://travis-ci.org/etsy/Conjecture.svg?branch=master)](https://travis-ci.org/etsy/Conjecture)
 
 Conjecture is a framework for building machine learning models in Hadoop using the Scalding DSL.
 The goal of this project is to enable the development of statistical models as viable components
