@@ -1,4 +1,4 @@
-#Conjecture [![Build Status](https://travis-ci.org/etsy/Conjecture.svg?branch=master)](https://travis-ci.org/etsy/Conjecture)
+# Conjecture [![Build Status](https://travis-ci.org/etsy/Conjecture.svg?branch=master)](https://travis-ci.org/etsy/Conjecture)
 
 Conjecture is a framework for building machine learning models in Hadoop using the Scalding DSL.
 The goal of this project is to enable the development of statistical models as viable components
@@ -11,7 +11,7 @@ by the web stack using the dataset loader, or models can be deployed and consume
 Currently, binary classification (assigning one of two possible labels to input data points)
 is the most mature component of the Conjecture package.
 
-#Tutorial
+# Tutorial
 There are a few stages involved in training a machine learning model using Conjecture.
 
 ## Create Training Data
