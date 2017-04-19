@@ -148,9 +148,10 @@ public class StringKeyedVectorTest {
     public void testGson() {
         Gson gson = new Gson();
         String json = gson.toJson(buildSKV());
-        String vector = "\"vector\":{\"foo\":1.0,\"bar\":-2.0}";
+        String vector1 = "\"vector\":{\"foo\":1.0,\"bar\":-2.0}";
+        String vector2 = "\"vector\":{\"bar\":-2.0,\"foo\":1.0}";
         String fks = "\"freezeKeySet\":false";
-        assertTrue(json.contains(vector));
+        assertTrue(json.contains(vector1) || json.contains(vector2));
         assertTrue(json.contains(fks));
     }
 
