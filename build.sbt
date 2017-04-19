@@ -1,5 +1,4 @@
 import sbt._
-import SonatypeKeys._
 
 name := "conjecture"
 
@@ -7,7 +6,7 @@ version := "0.2.1-SNAPSHOT"
 
 organization := "com.etsy"
 
-scalaVersion := "2.10.4"
+crossScalaVersions := Seq("2.11.11", "2.10.4")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
@@ -43,7 +42,7 @@ libraryDependencies ++= Seq(
     ExclusionRule(organization="com.google.guava", name="guava")
     ),
   "org.apache.hadoop" % "hadoop-tools" % "2.5.0-mr1-cdh5.3.0" exclude("commons-daemon", "commons-daemon"),
-  "org.scala-lang" % "scala-reflect" % "2.10.3",
+  "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   "net.sf.trove4j" % "trove4j" % "3.0.3",
   "com.esotericsoftware.kryo" % "kryo" % "2.21",
   "com.novocode" % "junit-interface" % "0.10" % "test"

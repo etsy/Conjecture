@@ -1,7 +1,5 @@
 package com.etsy.conjecture.text
 
-import scala.xml.XML
-
 case class Text(val input: String) {
 
     private implicit def text2str(txt: Text): String = txt.input
