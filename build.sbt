@@ -2,13 +2,15 @@ import sbt._
 
 name := "conjecture"
 
-version := "0.2.1-SNAPSHOT"
+version := "0.2.4-SNAPSHOT"
 
 organization := "com.etsy"
 
 crossScalaVersions := Seq("2.11.11", "2.10.4")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
+
+javacOptions ++= Seq("-Xlint:none", "-source", "1.7", "-target", "1.7")
 
 compileOrder := CompileOrder.JavaThenScala
 
