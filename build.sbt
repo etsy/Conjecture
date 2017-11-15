@@ -2,11 +2,12 @@ import sbt._
 
 name := "conjecture"
 
-version := "0.2.4-SNAPSHOT"
+version := "0.3.0-SNAPSHOT"
 
 organization := "com.etsy"
 
-crossScalaVersions := Seq("2.11.11", "2.10.4")
+crossScalaVersions := Seq("2.11.11", "2.12.4")
+scalaVersion := "2.11.11"
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
@@ -16,8 +17,7 @@ compileOrder := CompileOrder.JavaThenScala
 
 resolvers ++= {
   Seq(
-    "Concurrent Maven Repo" at "http://conjars.org/repo",
-    "cloudera" at "https://repository.cloudera.com/artifactory/cloudera-repos/"
+    "Concurrent Maven Repo" at "http://conjars.org/repo"
   )
 }
 
@@ -25,28 +25,24 @@ libraryDependencies ++= Seq(
   "cascading" % "cascading-core" % "2.6.1",
   "cascading" % "cascading-local" % "2.6.1" exclude("com.google.guava", "guava"),
   "cascading" % "cascading-hadoop" % "2.6.1",
-  "cascading.kryo" % "cascading.kryo" % "0.4.6",
   "com.google.code.gson" % "gson" % "2.2.2",
-  "com.twitter" % "maple" % "0.16.0",
-  "com.twitter" %% "algebird-core" % "0.12.0" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
-  "com.twitter" %% "scalding-core" % "0.16.0" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
+  "com.twitter" %% "algebird-core" % "0.13.0" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
+  "com.twitter" %% "scalding-core" % "0.17.2" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
   "commons-lang" % "commons-lang" % "2.4",
   "com.joestelmach" % "natty" % "0.7",
   "io.spray" %% "spray-json" % "1.3.2" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
   "com.google.guava" % "guava" % "13.0.1",
   "org.apache.commons" % "commons-math3" % "3.2",
-  "org.apache.hadoop" % "hadoop-common" % "2.5.0-cdh5.3.0" excludeAll(
+  "org.apache.hadoop" % "hadoop-common" % "2.5.0" excludeAll(
     ExclusionRule(organization="commons-daemon", name="commons-daemon"),
     ExclusionRule(organization="com.google.guava", name="guava")
     ),
-  "org.apache.hadoop" % "hadoop-hdfs" % "2.5.0-cdh5.3.0" excludeAll(
+  "org.apache.hadoop" % "hadoop-hdfs" % "2.5.0" excludeAll(
     ExclusionRule(organization="commons-daemon", name="commons-daemon"),
     ExclusionRule(organization="com.google.guava", name="guava")
     ),
-  "org.apache.hadoop" % "hadoop-tools" % "2.5.0-mr1-cdh5.3.0" exclude("commons-daemon", "commons-daemon"),
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   "net.sf.trove4j" % "trove4j" % "3.0.3",
-  "com.esotericsoftware.kryo" % "kryo" % "2.21",
   "com.novocode" % "junit-interface" % "0.10" % "test"
 )
 
