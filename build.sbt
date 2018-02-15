@@ -6,10 +6,18 @@ version := "0.3.0"
 
 organization := "com.etsy"
 
-crossScalaVersions := Seq("2.11.11", "2.12.4")
 scalaVersion := "2.11.11"
+crossScalaVersions := Seq("2.11.11", "2.12.4")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
+
+// Conditional setting logic via https://gist.github.com/joescii/4431cb2185eddb699dfb79b9c910e333
+def conditionalSettings[P](conditionalKey: SettingKey[P]): Seq[Def.Setting[_]] = {
+  Seq(
+    scalacOptions in (Compile, doc) += {if(conditionalKey.value == "2.12") "-no-java-comments" else ""}
+  )
+}
+conditionalSettings(scalaBinaryVersion)
 
 javacOptions ++= Seq("-Xlint:none", "-source", "1.7", "-target", "1.7")
 
