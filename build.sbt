@@ -27,7 +27,7 @@ libraryDependencies ++= Seq(
   "cascading" % "cascading-hadoop" % "2.6.1",
   "com.google.code.gson" % "gson" % "2.2.2",
   "com.twitter" %% "algebird-core" % "0.13.0" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
-  "com.twitter" %% "scalding-core" % "0.17.2" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
+  "com.twitter" %% "scalding-core" % "0.17.4" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
   "commons-lang" % "commons-lang" % "2.4",
   "com.joestelmach" % "natty" % "0.7",
   "io.spray" %% "spray-json" % "1.3.2" excludeAll ExclusionRule(organization="org.scala-lang", name="scala-library"),
