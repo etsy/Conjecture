@@ -11,15 +11,9 @@ crossScalaVersions := Seq("2.11.11", "2.12.4")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation")
 
-// Conditional setting logic via https://gist.github.com/joescii/4431cb2185eddb699dfb79b9c910e333
-def conditionalSettings[P](conditionalKey: SettingKey[P]): Seq[Def.Setting[_]] = {
-  Seq(
-    //Because some of our (legal!) java code confuses scaladoc, we must skip it for 2.12
-    //See: https://github.com/scala/bug/issues/10723
-    scalacOptions in (Compile, doc) += {if(conditionalKey.value == "2.12") "-no-java-comments" else ""}
-  )
-}
-conditionalSettings(scalaBinaryVersion)
+//Because some of our (legal!) java code confuses scaladoc, we must skip it for 2.12
+//See: https://github.com/scala/bug/issues/10723
+scalacOptions in (Compile, doc) += {if(scalaBinaryVersion.value == "2.12") "-no-java-comments" else ""}
 
 javacOptions ++= Seq("-Xlint:none", "-source", "1.7", "-target", "1.7")
 
